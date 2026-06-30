@@ -1,0 +1,11 @@
+# Python data layer for OtoScout. Pinned to versions this was validated on.
+#
+# soccerdata (FBref pipeline): pulls in pandas, selenium and seleniumbase; the
+# FBref reader drives a headless Chrome, so a Chrome/Chromium install is required.
+soccerdata==1.9.0
+pandas>=2.0
+
+# ScraperFC (Sofascore pipeline): rich Opta-style stats incl. xG/xA/pass%/goals
+# prevented. No browser — one API call, handles Sofascore's Cloudflare bypass.
+# Upkeep is mostly `pip install -U ScraperFC` when Sofascore changes.
+ScraperFC>=4.5.0

@@ -1,0 +1,32 @@
+{
+  "_comment": "OtoScout model — tunable live (read per request, no rebuild). Metrics are grouped into offensive/defensive/goalkeeping. Percentiles are computed within a POOL: outfield stats vs qualified outfielders, GK stats vs qualified keepers. 'rates' are already ratios (not converted to per-90). 'invert' = lower-is-better, so their percentile is flipped (green = good). outputScore is a weighted average of per-90 percentiles (outfield) — keepers naturally score low on it.",
+  "minMinutes": 450,
+  "groups": {
+    "offensive": ["goals", "assists", "npg", "shots", "sot", "crosses", "fouled"],
+    "expected": ["xg", "xa", "g_minus_xg"],
+    "efficiency": ["conv_pct", "sot_pct", "g_per_sot"],
+    "defensive": ["interceptions", "tackles_won", "fouls"],
+    "goalkeeping": ["gk_goals_prevented", "gk_saves", "gk_clean_sheets", "gk_save_pct", "gk_ga", "gk_sota", "gk_pk_saved"]
+  },
+  "rates": ["gk_save_pct", "conv_pct", "sot_pct", "g_per_sot", "g_minus_xg", "gk_goals_prevented"],
+  "invert": ["gk_ga", "gk_sota"],
+  "derived": { "minShots": 20, "minSot": 8 },
+  "outputScore": {
+    "weights": {
+      "npg": 0.30,
+      "assists": 0.25,
+      "sot": 0.15,
+      "shots": 0.10,
+      "interceptions": 0.10,
+      "tackles_won": 0.10
+    }
+  },
+  "keeperScore": {
+    "weights": {
+      "gk_goals_prevented": 0.35,
+      "gk_save_pct": 0.25,
+      "gk_clean_sheets": 0.20,
+      "gk_ga": 0.20
+    }
+  }
+}

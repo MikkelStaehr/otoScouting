@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+/* ── OtoScout design tokens ──────────────────────────────────────────────
+   Light cream editorial: warm paper canvas, near-black ink, charcoal accent.
+   Calm and quiet. (Token names like --color-ink / --color-volt are legacy:
+   --color-ink is now the cream PAGE colour, --color-volt the charcoal ACCENT.) */
+@theme {
+  --color-ink: #f4eee0;     /* page background (cream) */
+  --color-ink-2: #ece4d2;   /* subtle fills / sticky header */
+  --color-panel: #efe8d8;   /* cards / sidebar */
+  --color-line: #ddd2bb;    /* borders */
+  --color-line-2: #cdc1a6;  /* stronger borders */
+  --color-fg: #201d17;      /* primary text (warm near-black) */
+  --color-muted: #6e6655;   /* secondary text */
+  --color-faint: #9a9078;   /* tertiary text */
+  --color-volt: #26221b;    /* accent = charcoal/ink */
+  --color-volt-dim: #4f483b;
+
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-fg);
+  font-family: var(--font-display);
+  font-feature-settings: "ss01", "cv01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Faint warm grid on paper — calm, no glow. */
+  background-image:
+    linear-gradient(to right, rgba(38, 34, 27, 0.022) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(38, 34, 27, 0.022) 1px, transparent 1px);
+  background-size: 64px 64px, 64px 64px;
+  background-attachment: fixed;
+  min-height: 100dvh;
+}
+
+/* Tabular figures for the big confident numbers. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+::selection {
+  background: var(--color-volt);
+  color: var(--color-ink);
+}
+
+/* Thin, terminal-ish scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-2) transparent;
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
