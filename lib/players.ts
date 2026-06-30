@@ -77,7 +77,8 @@ function previousSofascore(league: string): {
 
 export interface Board {
   players: EnrichedPlayer[];
-  /** How many FBref players got matched to Sofascore xG data. */
+  /** How many players actually carry a non-null xG value (not just a name
+   *  match). 0 means the source has no xG for this league (e.g. Allsvenskan). */
   xgMatched: number;
   xgTotal: number;
   /** Timestamp of the snapshot the Δ chips compare against, or null. */
@@ -152,9 +153,13 @@ export function getEnrichedPlayers(league: string, season: string): Board {
     const d = deltas.get(`${p.team}::${p.player}`);
     if (d) p.delta = d;
   }
+  // Report players that actually have an xG value, not just a name match —
+  // so a league the source omits xG for (Allsvenskan) honestly reads 0.
+  void matched;
+  const xgPresent = rows.filter((p) => p.xg != null).length;
   return {
     players,
-    xgMatched: matched,
+    xgMatched: xgPresent,
     xgTotal: total,
     comparedTo: prev.createdAt,
   };

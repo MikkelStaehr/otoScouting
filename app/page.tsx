@@ -65,10 +65,18 @@ export default async function HomePage({
         <p className="mt-6 font-mono text-xs text-faint">
           OUT = weighted output score (per-90 percentiles, see config/model.json) ·
           data: FBref (counting) + Sofascore (xG/xA/goals prevented) ·{" "}
-          <span className="text-volt">
-            xG matched for {xgMatched}/{xgTotal} players
-          </span>{" "}
-          (unmatched show —)
+          {xgMatched === 0 ? (
+            <span className="text-muted">
+              ingen xG for denne liga — Sofascore modellerer ikke xG for Allsvenskan
+            </span>
+          ) : (
+            <>
+              <span className="text-volt">
+                xG for {xgMatched}/{xgTotal} players
+              </span>{" "}
+              (resten viser —)
+            </>
+          )}
         </p>
       </main>
     </div>
