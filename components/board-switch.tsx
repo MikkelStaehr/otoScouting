@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlayerTable } from "./player-table";
 import { TeamTable } from "./team-table";
@@ -44,6 +44,12 @@ export function BoardSwitch({
     crossLeague ? "players" : "teams",
   );
   const router = useRouter();
+
+  // Navigating into "Alle ligaer" reuses this component (no remount), so the
+  // initial state above doesn't re-run — force Spillere, since Hold is per-league.
+  useEffect(() => {
+    if (crossLeague) setScope("players");
+  }, [crossLeague]);
 
   const leagues = [...new Set(teamOptions.map((o) => o.league))];
   const seasonsForSelected = teamOptions.filter(
