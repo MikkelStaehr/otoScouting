@@ -25,11 +25,19 @@ interface MetricReport {
   key: string; label: string; group: "off" | "def";
   value: number | null; pct: number | null; rank: number | null; of: number; rate: boolean;
 }
+interface SquadCol { key: string; label: string; rate: boolean }
+interface SquadRow {
+  key: string; player: string; pos: string | null;
+  mp: number; minutes: number;
+  values: (number | null)[]; pcts: (number | null)[];
+}
+interface SquadGroup { group: string; label: string; cols: SquadCol[]; rows: SquadRow[] }
 interface TeamReport {
   team: string; league: string; season_label: string;
   matches: number | null; rating: number | null;
   ratingRank: number | null; teamsInLeague: number;
   metrics: MetricReport[]; strengths: MetricReport[]; weaknesses: MetricReport[];
+  squad: SquadGroup[];
   zones: ZoneCover[];
   goalsAgainst: number | null; bigChancesAgainst: number | null;
 }
@@ -207,6 +215,21 @@ export function TeamModal() {
                   </p>
                 </div>
               </div>
+
+              {/* squad — players by line with position-appropriate key stats */}
+              {detail.squad.length > 0 && (
+                <div className="mt-6 border-t border-line pt-5">
+                  <div className="mb-3 flex items-baseline justify-between">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Trup</span>
+                    <span className="font-mono text-[10px] text-faint">nøgletal pr. 90 · efter position · klik for spillerkort</span>
+                  </div>
+                  <div className="space-y-4">
+                    {detail.squad.map((g) => (
+                      <SquadTable key={g.group} g={g} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -361,6 +384,56 @@ function Zone({ z, weakest }: { z: ZoneCover; weakest: boolean }) {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+const cellBg = (pct: number | null): React.CSSProperties | undefined => {
+  if (pct == null) return undefined;
+  const a = (Math.abs(pct - 50) / 50) * 0.22;
+  return { backgroundColor: pct >= 50 ? `rgba(77,124,90,${a})` : `rgba(180,105,74,${a})` };
+};
+const fmtCell = (v: number | null, rate: boolean): string =>
+  v == null ? "—" : rate ? `${v.toFixed(0)}%` : v.toFixed(2);
+
+function SquadTable({ g }: { g: SquadGroup }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border border-line">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-line bg-ink-2">
+            <th className="px-3 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.15em] text-volt">
+              {g.label}
+            </th>
+            <th className="px-2 py-1.5 text-right font-mono text-[10px] uppercase tracking-wider text-faint" title="Kampe">K</th>
+            <th className="px-2 py-1.5 text-right font-mono text-[10px] uppercase tracking-wider text-faint">Min</th>
+            {g.cols.map((c) => (
+              <th key={c.key} className="px-2 py-1.5 text-right font-mono text-[10px] uppercase tracking-wider text-faint">
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {g.rows.map((r) => (
+            <tr key={r.key} className="border-t border-line/50 transition-colors hover:bg-panel/50">
+              <td className="whitespace-nowrap px-3 py-1.5">
+                <button onClick={() => openPlayer(r.key)} className="text-left font-medium text-fg transition-colors hover:text-volt">
+                  {r.player}
+                </button>
+                {r.pos && <span className="ml-1.5 font-mono text-[9px] text-faint">{r.pos}</span>}
+              </td>
+              <td className="px-2 py-1.5 text-right tnum text-muted">{r.mp}</td>
+              <td className="px-2 py-1.5 text-right tnum text-faint">{r.minutes}</td>
+              {r.values.map((v, i) => (
+                <td key={i} className="px-2 py-1.5 text-right tnum text-fg" style={cellBg(r.pcts[i] ?? null)}>
+                  {fmtCell(v, g.cols[i]!.rate)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
