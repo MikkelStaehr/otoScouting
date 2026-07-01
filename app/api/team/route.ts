@@ -1,6 +1,7 @@
-// Team defensive weakness map (zones + covering player + strength).
+// Full team report: season performance profile + league ranks + strengths/
+// weaknesses + defensive-zone weakness + recruitment fits.
 
-import { getTeamWeakness } from "@/lib/weakness";
+import { getTeamReport } from "@/lib/team-report";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export async function GET(req: Request) {
   const league = u.searchParams.get("league");
   const team = u.searchParams.get("team");
   if (!league || !team) return Response.json({ error: "missing league/team" }, { status: 400 });
-  const w = getTeamWeakness(league, team);
-  if (!w) return Response.json({ error: "not found" }, { status: 404 });
-  return Response.json(w);
+  const r = getTeamReport(league, team);
+  if (!r) return Response.json({ error: "not found" }, { status: 404 });
+  return Response.json(r);
 }

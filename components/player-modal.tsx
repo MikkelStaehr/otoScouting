@@ -101,7 +101,7 @@ export function PlayerModal() {
         className={`absolute inset-0 cursor-default bg-black/35 backdrop-blur-md transition-opacity duration-200 ${visible ? "opacity-100" : "opacity-0"}`}
       />
       <div
-        className={`relative flex max-h-[84vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-line-2 bg-panel/95 shadow-2xl shadow-black/50 transition duration-200 ${visible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}
+        className={`relative flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-line-2 bg-panel/95 shadow-2xl shadow-black/50 transition duration-200 ${visible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}
       >
         {/* header */}
         <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
@@ -148,33 +148,38 @@ export function PlayerModal() {
             <div className="py-10 text-center font-mono text-sm text-faint">henter…</div>
           ) : (
             <>
-              {detail.heatmap && (
-                <div className="mb-5">
-                  <div className="mb-1.5 flex items-baseline justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">
-                      Heatmap
-                    </span>
-                    <span className="font-mono text-[10px] text-faint">
-                      hvor han er på banen{detail.heatmap.matches != null && ` · ${detail.heatmap.matches} kampe`}
-                    </span>
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-12">
+                {detail.heatmap && (
+                  <div className="lg:col-span-5">
+                    <div className="mb-1.5 flex items-baseline justify-between">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">
+                        Heatmap
+                      </span>
+                      <span className="font-mono text-[10px] text-faint">
+                        {detail.heatmap.matches != null && `${detail.heatmap.matches} kampe`}
+                      </span>
+                    </div>
+                    <Pitch hm={detail.heatmap} />
+                    <p className="mt-1.5 font-mono text-[10px] text-faint">hvor han er på banen over sæsonen</p>
                   </div>
-                  <Pitch hm={detail.heatmap} />
-                </div>
-              )}
+                )}
 
-              <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-                {detail.groups.map((g) => (
-                  <div key={g.label}>
-                    <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-volt">
-                      {g.label}
-                    </div>
-                    <div className="space-y-1.5">
-                      {g.stats.map((s) => (
-                        <StatRow key={s.key} stat={s} />
-                      ))}
-                    </div>
+                <div className={detail.heatmap ? "lg:col-span-7" : "lg:col-span-12"}>
+                  <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+                    {detail.groups.map((g) => (
+                      <div key={g.label}>
+                        <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-volt">
+                          {g.label}
+                        </div>
+                        <div className="space-y-1.5">
+                          {g.stats.map((s) => (
+                            <StatRow key={s.key} stat={s} />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
 
               {/* similar players */}
@@ -185,7 +190,7 @@ export function PlayerModal() {
                 {detail.similar.length === 0 ? (
                   <div className="py-3 font-mono text-xs text-faint">ingen tætte profiler fundet</div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
                     {detail.similar.map((s) => (
                       <button
                         key={s.key}
