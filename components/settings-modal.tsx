@@ -233,7 +233,7 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
             />
             <span>
               Inkl. FBref (position/alder/nationalitet) —{" "}
-              <span className="text-faint">langsom, ~10 min for alle 3 ligaer, sjældent nødvendigt</span>
+              <span className="text-faint">meget langsom (~1 t for alle 16 ligaer), sjældent nødvendigt</span>
             </span>
           </label>
 

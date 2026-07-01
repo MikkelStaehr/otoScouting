@@ -29,10 +29,14 @@ HERE = Path(__file__).resolve().parent
 PY = sys.executable
 
 
-def run(script_args: list[str], label: str) -> tuple[bool, float]:
+def run(script_args: list[str], label: str, timeout: int | None = None) -> tuple[bool, float]:
     print(f"\n{'=' * 64}\n▶ {label}\n{'=' * 64}", flush=True)
     t = time.time()
-    rc = subprocess.run([PY, *script_args], cwd=HERE).returncode
+    try:
+        rc = subprocess.run([PY, *script_args], cwd=HERE, timeout=timeout).returncode
+    except subprocess.TimeoutExpired:
+        rc = 124  # FBref hung/throttled — killed, move on (retried in a later pass)
+        print(f"  ! timed out after {timeout}s — skipping", flush=True)
     dt = time.time() - t
     print(f"{'✓' if rc == 0 else '✗'} {label}  ({dt:.0f}s, exit {rc})", flush=True)
     return rc == 0, dt
@@ -49,6 +53,10 @@ def main() -> int:
     ap.add_argument("--sofascore-only", action="store_true")
     ap.add_argument("--fbref-only", action="store_true")
     ap.add_argument("--no-coef", action="store_true", help="skip clubelo coefficients")
+    ap.add_argument("--fbref-timeout", type=int, default=240,
+                    help="per-league FBref timeout in seconds; a hang is skipped and retried")
+    ap.add_argument("--fbref-passes", type=int, default=3,
+                    help="retry passes over leagues that failed/timed out")
     ap.add_argument("--db", default=None)
     args = ap.parse_args()
 
@@ -70,11 +78,28 @@ def main() -> int:
             sofa += ["--league", args.league]
         results["sofascore"], _ = run(sofa, "Sofascore (all leagues, one snapshot)")
 
-    # 3. FBref — per league, isolated (slow)
+    # 3. FBref — per league, isolated + time-bounded. FBref throttles/hangs on
+    #    big leagues, so cap each attempt and retry the stragglers in later passes
+    #    (soccerdata caches successes, so a retry only re-hits what's missing).
     if not args.sofascore_only:
-        for lk in keys:
-            ok, _ = run(["fetch.py", "--league", lk, "--no-archive", *db], f"FBref {lk}")
-            results[f"fbref:{lk}"] = ok
+        pending = list(keys)
+        for attempt in range(1, args.fbref_passes + 1):
+            if not pending:
+                break
+            print(f"\n### FBref pass {attempt}/{args.fbref_passes} — {len(pending)} league(s) ###", flush=True)
+            still: list[str] = []
+            for lk in pending:
+                ok, _ = run(
+                    ["fetch.py", "--league", lk, "--no-archive", *db],
+                    f"FBref {lk} (pass {attempt})",
+                    timeout=args.fbref_timeout,
+                )
+                results[f"fbref:{lk}"] = ok
+                if not ok:
+                    still.append(lk)
+            pending = still
+        if pending:
+            print(f"\nFBref still missing after {args.fbref_passes} passes: {', '.join(pending)}", flush=True)
 
     dt = time.time() - t0
     print(f"\n{'=' * 64}\nINGEST DONE in {dt / 60:.1f} min\n{'=' * 64}")
