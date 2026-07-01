@@ -130,14 +130,16 @@ export function ScatterDashboard({
 
   const showDiagonal = DIAGONAL_PAIRS.has(`${xAxis.key}|${yAxis.key}`);
 
-  // Median of the X axis — a vertical reference so you can see who's above/below
-  // the typical value for the plotted population.
-  const medianX = useMemo(() => {
-    if (points.length === 0) return null;
-    const xs = points.map((p) => p.x).sort((a, b) => a - b);
-    const mid = xs.length >> 1;
-    return xs.length % 2 ? xs[mid]! : (xs[mid - 1]! + xs[mid]!) / 2;
-  }, [points]);
+  // Median of each axis — vertical + horizontal references so you can see who's
+  // above/below the typical value for the plotted population on both metrics.
+  const median = (vals: number[]) => {
+    if (vals.length === 0) return null;
+    const s = [...vals].sort((a, b) => a - b);
+    const mid = s.length >> 1;
+    return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+  };
+  const medianX = useMemo(() => median(points.map((p) => p.x)), [points]);
+  const medianY = useMemo(() => median(points.map((p) => p.y)), [points]);
 
   return (
     <div className="rounded-2xl border border-line bg-panel/30 p-3 sm:p-5">
@@ -181,7 +183,7 @@ export function ScatterDashboard({
         {showDiagonal
           ? "Grøn stiplet = y=x: prikker under linjen præsterer over forventning (fx flere mål end xG), over linjen under. "
           : "Klik en prik for detaljer; hold musen over for kampe + minutter. "}
-        <span className="text-[rgba(180,105,74,0.9)]">Rød stiplet = median.</span>
+        <span className="text-[rgba(180,105,74,0.9)]">Røde stiplede = median for hver akse (lodret = X, vandret = Y).</span>
       </div>
 
       {/* plot — height-bounded so it never sprawls on wide screens */}
@@ -217,7 +219,7 @@ export function ScatterDashboard({
               ) : null;
             })()}
 
-            {/* vertical median line (X axis) */}
+            {/* median reference lines — vertical for X, horizontal for Y */}
             {medianX != null && (
               <g pointerEvents="none">
                 <line
@@ -229,7 +231,22 @@ export function ScatterDashboard({
                   className="fill-[rgba(180,105,74,0.9)]"
                   style={{ fontSize: 10, fontFamily: "monospace" }}
                 >
-                  median {medianX.toFixed(2)}
+                  median {xAxis.label}: {medianX.toFixed(2)}
+                </text>
+              </g>
+            )}
+            {medianY != null && (
+              <g pointerEvents="none">
+                <line
+                  x1={M.left} y1={scale.sy(medianY)} x2={W - M.right} y2={scale.sy(medianY)}
+                  stroke="rgba(180,105,74,0.7)" strokeWidth={1.5} strokeDasharray="4 4"
+                />
+                <text
+                  x={W - M.right - 5} y={scale.sy(medianY) - 5} textAnchor="end"
+                  className="fill-[rgba(180,105,74,0.9)]"
+                  style={{ fontSize: 10, fontFamily: "monospace" }}
+                >
+                  median {yAxis.label}: {medianY.toFixed(2)}
                 </text>
               </g>
             )}
