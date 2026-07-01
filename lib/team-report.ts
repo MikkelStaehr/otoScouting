@@ -101,9 +101,38 @@ const GROUP_LABEL: Record<string, string> = {
 };
 const GROUP_ORDER = ["GK", "DF", "MF", "FW"];
 
-function buildSquad(league: string, nt: string, players: EnrichedPlayer[]): SquadGroup[] {
+// Resolve a clicked (Sofascore-spelled) team name to the FBref team name the
+// player rows use. Exact normalised match first, then a distinctive-token
+// overlap so "Red Bull Salzburg" ↔ "RB Salzburg" and "SV 07 Elversberg" ↔
+// "Elversberg" still line up.
+function resolvePlayerTeam(league: string, clicked: string, players: EnrichedPlayer[]): string | null {
+  const nt = normTeam(clicked);
+  const inLeague = players.filter((p) => p.league === league);
+  const exact = inLeague.find((p) => normTeam(p.team) === nt);
+  if (exact) return exact.team;
+
+  const target = new Set(nt.split(" ").filter((t) => t.length >= 3));
+  if (target.size === 0) return null;
+  const seen = new Set<string>();
+  let best: string | null = null;
+  let bestLen = 0;
+  for (const p of inLeague) {
+    if (seen.has(p.team)) continue;
+    seen.add(p.team);
+    let sharedLen = 0;
+    for (const tok of new Set(normTeam(p.team).split(" ").filter((t) => t.length >= 3)))
+      if (target.has(tok)) sharedLen += tok.length;
+    if (sharedLen > bestLen) {
+      bestLen = sharedLen;
+      best = p.team;
+    }
+  }
+  return bestLen >= 4 ? best : null; // need a real shared token, not incidental noise
+}
+
+function buildSquad(league: string, teamName: string, players: EnrichedPlayer[]): SquadGroup[] {
   const mine = players.filter(
-    (p) => p.league === league && normTeam(p.team) === nt && (p.minutes ?? 0) > 0,
+    (p) => p.league === league && p.team === teamName && (p.minutes ?? 0) > 0,
   );
   const groups: SquadGroup[] = [];
   for (const g of GROUP_ORDER) {
@@ -126,14 +155,17 @@ function buildSquad(league: string, nt: string, players: EnrichedPlayer[]): Squa
 }
 
 export function getTeamReport(league: string, team: string): TeamReport | null {
-  const weakness = getTeamWeakness(league, team);
-  if (!weakness) return null;
+  const { players } = getCrossLeaguePlayers();
+  // Player rows use FBref spelling; the clicked name is Sofascore's — resolve it
+  // so squad + weakness engine find the right players (many clubs differ).
+  const playerTeam = resolvePlayerTeam(league, team, players);
+  const squad = playerTeam ? buildSquad(league, playerTeam, players) : [];
+  // Weakness/fit engine keys off the FBref player-team spelling.
+  const weakness = getTeamWeakness(league, playerTeam ?? team);
 
   // Find the league-season this team plays in (latest first) and its siblings,
   // so we can rank each metric within the league.
   const nt = normTeam(team);
-  const { players } = getCrossLeaguePlayers();
-  const squad = buildSquad(league, nt, players);
   const seasons = getTeamLeagueSeasons().filter((s) => s.league === league);
   let siblings: EnrichedTeam[] = [];
   let me: EnrichedTeam | undefined;
@@ -196,8 +228,12 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
     .filter((m) => m.pct! <= 35)
     .slice(0, 4);
 
+  // Nothing to show at all → let the caller 404. Otherwise render whatever we have
+  // (team stats OR squad OR zones), so a name mismatch never blanks the whole report.
+  if (!me && squad.length === 0 && !weakness) return null;
+
   return {
-    team: weakness.team,
+    team: me?.team ?? weakness?.team ?? team,
     league,
     season_label: seasonLabel,
     matches: me?.matches ?? null,
@@ -208,8 +244,8 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
     strengths,
     weaknesses,
     squad,
-    zones: weakness.zones,
-    goalsAgainst: weakness.goalsAgainst,
-    bigChancesAgainst: weakness.bigChancesAgainst,
+    zones: weakness?.zones ?? [],
+    goalsAgainst: me?.value["goals_conceded"] ?? weakness?.goalsAgainst ?? null,
+    bigChancesAgainst: me?.value["big_chances_against"] ?? weakness?.bigChancesAgainst ?? null,
   };
 }
