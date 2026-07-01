@@ -109,3 +109,11 @@ export function getTeams(league: string, season: string): EnrichedTeam[] {
 
   return enriched.sort((a, b) => (b.avg_rating ?? 0) - (a.avg_rating ?? 0));
 }
+
+/** Every league's teams in one flat list (per-match values), for the dashboard
+ *  scatter. Percentiles stay per-league; the scatter only reads raw values. */
+export function getAllTeams(): EnrichedTeam[] {
+  const out: EnrichedTeam[] = [];
+  for (const ls of getTeamLeagueSeasons()) out.push(...getTeams(ls.league, ls.season));
+  return out;
+}

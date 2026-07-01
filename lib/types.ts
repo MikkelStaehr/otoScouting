@@ -119,6 +119,7 @@ export interface LeagueSeason {
 // ── Team performance (Sofascore team season stats) ──
 
 export interface RawTeam {
+  league: string;
   season: string;
   season_label: string;
   sofascore_team_id: number;

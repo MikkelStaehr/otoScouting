@@ -70,7 +70,7 @@ export function BoardSwitch({
   );
 
   function pick(league: string, season: string) {
-    router.push(`/?league=${encodeURIComponent(league)}&season=${season}`, {
+    router.push(`/board?league=${encodeURIComponent(league)}&season=${season}`, {
       scroll: false,
     });
   }
