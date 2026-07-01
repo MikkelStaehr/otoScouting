@@ -74,8 +74,14 @@ function teamXg(league: string, season: string): Map<string, { xg: number; xa: n
 }
 
 export function getTeams(league: string, season: string): EnrichedTeam[] {
-  const teams = rawTeams(league, season);
-  if (!teams.length) return [];
+  const all = rawTeams(league, season);
+  if (!all.length) return [];
+  // Drop non-participants: some Sofascore tournaments include a handful of
+  // playoff/relegation entries (e.g. Scottish Championship clubs under the
+  // Premiership id) with 2-4 matches and empty stats. Keep only teams with at
+  // least half the league's match count so percentiles + leaderboards are clean.
+  const maxMatches = Math.max(...all.map((t) => t.matches ?? 0), 1);
+  const teams = all.filter((t) => (t.matches ?? 0) >= maxMatches * 0.5);
   const xgMap = teamXg(league, season);
 
   // Display value for a team on a metric: rate as-is, else per-match.
