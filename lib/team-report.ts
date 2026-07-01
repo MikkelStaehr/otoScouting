@@ -31,8 +31,10 @@ export interface SquadRow {
   key: string; // `${team}::${player}` for the player modal
   player: string;
   pos: string | null;
+  nation: string | null;
   mp: number;
   minutes: number;
+  out: number | null; // output score (null for keepers)
   values: (number | null)[]; // aligned to the group's cols
   pcts: (number | null)[]; // percentiles, for heat colouring
 }
@@ -72,16 +74,18 @@ const SQUAD_COLS: Record<string, SquadCol[]> = {
   FW: [
     { key: "goals", label: "Mål", rate: false },
     { key: "xg", label: "xG", rate: false },
+    { key: "assists", label: "Assist", rate: false },
     { key: "shots", label: "Skud", rate: false },
     { key: "key_passes", label: "Chances", rate: false },
     { key: "dribbles", label: "Dribl.", rate: false },
   ],
   MF: [
+    { key: "assists", label: "Assist", rate: false },
+    { key: "xa", label: "xA", rate: false },
     { key: "key_passes", label: "Chances", rate: false },
     { key: "pass_pct", label: "Pass%", rate: true },
     { key: "dribbles", label: "Dribl.", rate: false },
     { key: "ball_recovery", label: "Gen.erob.", rate: false },
-    { key: "tackles", label: "Tklr", rate: false },
   ],
   DF: [
     { key: "tackles", label: "Tklr", rate: false },
@@ -144,8 +148,10 @@ function buildSquad(league: string, teamName: string, players: EnrichedPlayer[])
         key: `${p.team}::${p.player}`,
         player: p.player,
         pos: (p.pos ?? "").split(",")[0]?.trim() ?? null,
+        nation: p.nation ?? null,
         mp: p.mp,
         minutes: p.minutes,
+        out: p.outputScore == null ? null : Math.round(p.outputScore),
         values: cols.map((c) => p.per90[c.key as MetricKey] ?? null),
         pcts: cols.map((c) => p.percentile[c.key as MetricKey] ?? null),
       }));
