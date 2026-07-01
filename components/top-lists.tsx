@@ -10,6 +10,8 @@ export interface DashPlayer {
   lg: string;
   age: number | null;
   min: number;
+  mp: number;
+  pos: string | null;
   out: number | null;
   xg: number | null;
   goals: number;
@@ -20,6 +22,7 @@ export interface DashPlayer {
 
 const LEAGUE_ABBR = (lg: string) => lg.slice(0, 3);
 const FULL_CAP = 250; // "hele listen" — plenty for scouting
+const primaryPos = (pos: string | null) => pos?.split(",")[0]?.trim() ?? null;
 
 interface Spec {
   key: string;
@@ -192,6 +195,7 @@ function Row({
   hint?: string;
   big?: boolean;
 }) {
+  const pos = primaryPos(p.pos);
   return (
     <li>
       <button
@@ -200,14 +204,18 @@ function Row({
       >
         <span className="tnum w-6 shrink-0 text-right font-mono text-[11px] text-faint">{i + 1}</span>
         <Crest team={p.t} />
-        <span className="min-w-0 flex-1 truncate">
-          <span className="text-fg">{p.n}</span>
-          <span className="ml-1.5 font-mono text-[10px] text-faint">
-            {p.t} · {LEAGUE_ABBR(p.lg)}
+        <span className="min-w-0 flex-1 leading-tight">
+          <span className="block truncate text-fg">{p.n}</span>
+          <span className="block truncate font-mono text-[10px] text-faint">
+            {p.t}
+          </span>
+          <span className="block font-mono text-[10px] text-faint">
+            {LEAGUE_ABBR(p.lg)}
+            {pos && <span className="ml-1 text-muted">· {pos}</span>}
           </span>
         </span>
-        {hint && <span className="shrink-0 font-mono text-[10px] text-muted">{hint}</span>}
-        <span className="tnum shrink-0 font-mono text-xs font-semibold text-volt">{v}</span>
+        {hint && <span className="w-10 shrink-0 text-right font-mono text-[10px] text-muted">{hint}</span>}
+        <span className="tnum w-12 shrink-0 text-right font-mono text-sm font-semibold text-volt">{v}</span>
       </button>
     </li>
   );

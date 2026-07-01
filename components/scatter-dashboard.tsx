@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PLAYER_AXES, TEAM_AXES, DIAGONAL_PAIRS } from "@/lib/scatter-axes";
+import { PLAYER_AXES, TEAM_AXES, DIAGONAL_PAIRS, AXIS_DESC } from "@/lib/scatter-axes";
 import { openPlayer } from "./player-modal";
 
 export interface PlayerPoint {
@@ -10,6 +10,7 @@ export interface PlayerPoint {
   lg: string;
   age: number | null;
   min: number;
+  mp: number;
   out: number | null;
   v: Record<string, number | null>;
 }
@@ -75,18 +76,25 @@ export function ScatterDashboard({
       y: number;
       hit: boolean;
       key: string | null;
+      mp: number | null;
+      min: number | null;
     }[] = [];
     for (const p of src) {
       if (league !== "ALL" && p.lg !== league) continue;
       const x = p.v[xAxis.key];
       const y = p.v[yAxis.key];
       if (x == null || y == null) continue;
+      // Drop players sitting on a zero axis — a 0 on either metric is "didn't do
+      // it at all" and just piles up as noise on the edge, not a real data point.
+      if (x === 0 || y === 0) continue;
       const isP = "t" in p;
       const name = p.n;
       const sub = isP ? `${(p as PlayerPoint).t} · ${LEAGUE_ABBR(p.lg)}` : LEAGUE_ABBR(p.lg);
       const hit = q.length > 0 && (name.toLowerCase().includes(q) || (isP && (p as PlayerPoint).t.toLowerCase().includes(q)));
       const key = isP ? `${(p as PlayerPoint).t}::${name}` : null;
-      out.push({ name, sub, lg: p.lg, x, y, hit, key });
+      const mp = isP ? (p as PlayerPoint).mp : null;
+      const min = isP ? (p as PlayerPoint).min : null;
+      out.push({ name, sub, lg: p.lg, x, y, hit, key, mp, min });
     }
     return out;
   }, [mode, players, teams, league, xAxis.key, yAxis.key, query]);
@@ -122,6 +130,15 @@ export function ScatterDashboard({
 
   const showDiagonal = DIAGONAL_PAIRS.has(`${xAxis.key}|${yAxis.key}`);
 
+  // Median of the X axis — a vertical reference so you can see who's above/below
+  // the typical value for the plotted population.
+  const medianX = useMemo(() => {
+    if (points.length === 0) return null;
+    const xs = points.map((p) => p.x).sort((a, b) => a - b);
+    const mid = xs.length >> 1;
+    return xs.length % 2 ? xs[mid]! : (xs[mid - 1]! + xs[mid]!) / 2;
+  }, [points]);
+
   return (
     <div className="rounded-2xl border border-line bg-panel/30 p-3 sm:p-5">
       {/* controls */}
@@ -151,6 +168,20 @@ export function ScatterDashboard({
           {points.length} {mode === "players" ? "spillere" : "hold"}
           {mode === "players" && <span className="ml-1">· min. 450 min.</span>}
         </span>
+      </div>
+
+      {/* contextual explainer — updates with the chosen X/Y axes */}
+      <div className="mb-3 rounded-lg border border-line/60 bg-ink/40 px-3 py-2 font-mono text-[11px] leading-relaxed text-faint">
+        <span className="text-muted">X · {xAxis.label}</span>
+        {AXIS_DESC[xAxis.key] && <span> — {AXIS_DESC[xAxis.key]}</span>}
+        <span className="mx-1.5 text-line-2">|</span>
+        <span className="text-muted">Y · {yAxis.label}</span>
+        {AXIS_DESC[yAxis.key] && <span> — {AXIS_DESC[yAxis.key]}</span>}
+        <br />
+        {showDiagonal
+          ? "Grøn stiplet = y=x: prikker under linjen præsterer over forventning (fx flere mål end xG), over linjen under. "
+          : "Klik en prik for detaljer; hold musen over for kampe + minutter. "}
+        <span className="text-[rgba(180,105,74,0.9)]">Rød stiplet = median.</span>
       </div>
 
       {/* plot — height-bounded so it never sprawls on wide screens */}
@@ -185,6 +216,23 @@ export function ScatterDashboard({
                   stroke="rgba(77,124,90,0.9)" strokeWidth={1.5} strokeDasharray="5 5" />
               ) : null;
             })()}
+
+            {/* vertical median line (X axis) */}
+            {medianX != null && (
+              <g pointerEvents="none">
+                <line
+                  x1={scale.sx(medianX)} y1={M.top} x2={scale.sx(medianX)} y2={H - M.bottom}
+                  stroke="rgba(180,105,74,0.7)" strokeWidth={1.5} strokeDasharray="4 4"
+                />
+                <text
+                  x={scale.sx(medianX) + 5} y={M.top + 12}
+                  className="fill-[rgba(180,105,74,0.9)]"
+                  style={{ fontSize: 10, fontFamily: "monospace" }}
+                >
+                  median {medianX.toFixed(2)}
+                </text>
+              </g>
+            )}
 
             {/* axis titles */}
             <text x={(M.left + W - M.right) / 2} y={H - 6} textAnchor="middle"
@@ -234,7 +282,9 @@ export function ScatterDashboard({
               const x = scale.sx(p.x);
               const y = scale.sy(p.y);
               const w = 210;
-              const h = 74;
+              const isPlayer = p.mp != null;
+              // Sample-size line only for players — matches + minutes give context.
+              const h = isPlayer ? 94 : 74;
               const left = x > W - w - 20 ? x - w - 10 : x + 10;
               const top = Math.min(Math.max(y - 30, M.top), H - M.bottom - h);
               const row = (label: string, val: number, dy: number) => (
@@ -256,6 +306,14 @@ export function ScatterDashboard({
                   <text x={left + 10} y={top + 33} className="fill-muted" style={{ fontSize: 11 }}>{p.sub}</text>
                   {row(xAxis.label, p.x, 52)}
                   {row(yAxis.label, p.y, 67)}
+                  {isPlayer && (
+                    <>
+                      <line x1={left + 10} y1={top + 75} x2={left + w - 10} y2={top + 75} stroke="var(--color-line)" strokeWidth={1} />
+                      <text x={left + 10} y={top + 87} className="fill-faint" style={{ fontSize: 10, fontFamily: "monospace" }}>
+                        {p.mp} kampe · {p.min} min.
+                      </text>
+                    </>
+                  )}
                 </g>
               );
             })()}

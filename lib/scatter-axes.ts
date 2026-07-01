@@ -50,3 +50,39 @@ export const TEAM_AXES: Axis[] = [
 
 /** These metric pairs share a unit, so the y=x reference line is meaningful. */
 export const DIAGONAL_PAIRS = new Set(["goals|xg", "npg|xg", "goals_conceded|shots_against"]);
+
+/** Short plain-language description of what each axis measures — shown as a hint
+ *  when the axis is picked, so the scatter explains itself. */
+export const AXIS_DESC: Record<string, string> = {
+  goals: "mål scoret pr. 90 min.",
+  npg: "mål uden straffespark pr. 90 — ren afslutning",
+  xg: "forventede mål (chancekvalitet) pr. 90",
+  assists: "assists pr. 90",
+  xa: "forventede assists (afgørende afl.) pr. 90",
+  key_passes: "afleveringer der fører til skud, pr. 90",
+  big_chances_created: "oplagte målchancer skabt pr. 90",
+  dribbles: "vellykkede driblinger pr. 90",
+  acc_crosses: "præcise indlæg pr. 90",
+  shots: "skud pr. 90",
+  sot: "skud på mål pr. 90",
+  crosses: "indlæg pr. 90",
+  interceptions: "erobrede bolde (aflæsninger) pr. 90",
+  tackles: "tacklinger pr. 90",
+  tackles_won: "vundne tacklinger pr. 90",
+  clearances: "clearances pr. 90",
+  blocks: "blokeringer pr. 90",
+  ball_recovery: "generobrede bolde pr. 90",
+  aerial_won: "vundne luftdueller pr. 90",
+  poss_won_att_third: "boldgenerobringer i angrebstredjedelen pr. 90",
+  final_third_passes: "afleveringer i sidste tredjedel pr. 90",
+  long_balls: "lange bolde pr. 90",
+  duels_won_pct: "andel dueller vundet (%)",
+  pass_pct: "afleveringspræcision (%)",
+  g_minus_xg: "mål minus xG — positivt = scorer mere end chancerne tilsiger",
+  conv_pct: "andel skud der bliver til mål (%)",
+  // teams
+  possession: "boldbesiddelse (%)",
+  big_chances: "oplagte målchancer pr. kamp",
+  goals_conceded: "mål lukket ind pr. kamp",
+  shots_against: "skud imod pr. kamp",
+};

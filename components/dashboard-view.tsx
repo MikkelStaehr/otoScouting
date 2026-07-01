@@ -27,12 +27,6 @@ export function DashboardView({
     <>
       <ScatterDashboard players={playerPoints} teams={teamPoints} mode={mode} />
 
-      <p className="mt-4 font-mono text-xs text-faint">
-        Sæt X og Y og se hvem der afviger fra mængden. Grøn stiplet = y=x
-        (over/under-performance, fx mål vs xG). De mest markante navngives
-        automatisk; søg for at fremhæve. Kun de små/producerende ligaer.
-      </p>
-
       <div className="mt-8">
         <div className="mb-3 flex flex-wrap items-baseline gap-3 border-b border-line pb-2">
           <h2 className="font-display text-lg font-bold text-fg">Top-lister</h2>
