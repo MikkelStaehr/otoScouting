@@ -1,7 +1,12 @@
 import { SiteHeader } from "@/components/site-header";
 import { BoardSwitch } from "@/components/board-switch";
-import { getDefaultLeagueSeason, getEnrichedPlayers } from "@/lib/players";
+import {
+  getDefaultLeagueSeason,
+  getEnrichedPlayers,
+  getCrossLeaguePlayers,
+} from "@/lib/players";
 import { getTeams, getTeamLeagueSeasons } from "@/lib/teams";
+import { ALL_LEAGUES } from "@/lib/league-config";
 import { loadModelConfig } from "@/lib/model";
 
 // Local tool: always re-read scouting.db + config/model.json on request, so a
@@ -34,18 +39,21 @@ export default async function HomePage({
 
   // One league/season selector drives BOTH boards — FBref (players) and
   // Sofascore (teams) share the same season codes (Superliga 2526, Nordic 2026).
+  // A special "ALL" selection pools every league for cross-league ranking.
   const teamOptions = getTeamLeagueSeasons();
   const sp = await searchParams;
-  const selected =
-    teamOptions.find((o) => o.league === sp.league && o.season === sp.season) ??
-    teamOptions[0] ??
-    { league: ls.league, season: ls.season, season_label: ls.season_label };
+  const crossLeague = sp.league === ALL_LEAGUES;
+  const selected = crossLeague
+    ? { league: ALL_LEAGUES, season: "", season_label: "2026" }
+    : teamOptions.find((o) => o.league === sp.league && o.season === sp.season) ??
+      teamOptions[0] ??
+      { league: ls.league, season: ls.season, season_label: ls.season_label };
 
-  const { players, xgMatched, xgTotal, comparedTo } = getEnrichedPlayers(
-    selected.league,
-    selected.season,
-  );
-  const teams = getTeams(selected.league, selected.season);
+  const { players, xgMatched, xgTotal, comparedTo } = crossLeague
+    ? getCrossLeaguePlayers()
+    : getEnrichedPlayers(selected.league, selected.season);
+  // Team percentiles are per-league, so the Hold board stays single-league.
+  const teams = crossLeague ? [] : getTeams(selected.league, selected.season);
 
   return (
     <div className="min-h-dvh">
@@ -57,6 +65,7 @@ export default async function HomePage({
           teams={teams}
           teamOptions={teamOptions}
           selectedTeam={selected}
+          crossLeague={crossLeague}
           groups={config.groups}
           rates={config.rates}
           comparedTo={comparedTo}
@@ -64,6 +73,12 @@ export default async function HomePage({
 
         <p className="mt-6 font-mono text-xs text-faint">
           OUT = weighted output score (per-90 percentiles, see config/model.json) ·
+          {crossLeague && (
+            <span className="text-muted">
+              {" "}percentiler på tværs af alle 3 ligaer, output vægtet efter
+              ligastyrke (Elo, se config/leagues.json) ·
+            </span>
+          )}{" "}
           data: FBref (counting) + Sofascore (xG/xA/goals prevented) ·{" "}
           {xgMatched === 0 ? (
             <span className="text-muted">

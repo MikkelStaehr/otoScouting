@@ -43,17 +43,25 @@ interface Bounds {
   step: number;
 }
 
+const LEAGUE_ABBR: Record<string, string> = {
+  "DEN-Superliga": "DEN",
+  "SWE-Allsvenskan": "SWE",
+  "NOR-Eliteserien": "NOR",
+};
+
 export function PlayerTable({
   players,
   groups,
   rates,
   comparedTo,
+  crossLeague = false,
 }: {
   players: EnrichedPlayer[];
   groups: Record<GroupKey, MetricKey[]>;
   rates: MetricKey[];
   minMinutes?: number;
   comparedTo: string | null;
+  crossLeague?: boolean;
 }) {
   const rateSet = useMemo(() => new Set(rates), [rates]);
 
@@ -465,7 +473,7 @@ export function PlayerTable({
                       {p.player}
                     </td>
                     <td className="px-3 py-2"><Flag nat={p.nation} /></td>
-                    <td className="whitespace-nowrap px-3 py-2 text-muted"><TeamLogo team={p.team} />{p.team}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-muted">{crossLeague && <LeagueTag league={p.league} />}<TeamLogo team={p.team} />{p.team}</td>
                     <td className="px-3 py-2 font-mono text-xs text-muted">{primaryPos}</td>
                     <td className="px-3 py-2 text-right tnum text-muted">{p.age || "—"}</td>
                     <td className="border-l-2 border-line-2 px-3 py-2 text-right tnum text-muted">{p.mp}</td>
@@ -551,7 +559,7 @@ export function PlayerTable({
                   </td>
                   <td className="px-3 py-2"><Flag nat={p.nation} /></td>
                   <td className="whitespace-nowrap px-3 py-2 text-muted">
-                    <TeamLogo team={p.team} />
+                    {crossLeague && <LeagueTag league={p.league} />}<TeamLogo team={p.team} />
                     {p.team}
                   </td>
                   <td className="px-3 py-2 font-mono text-xs text-muted">{p.pos ?? "—"}</td>
@@ -854,6 +862,17 @@ function Flag({ nat }: { nat: string | null }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={url} alt={nat} title={nat} onError={() => setOk(false)} loading="lazy" className="inline-block h-3 w-auto rounded-[1px] ring-1 ring-line-2/60" />
+  );
+}
+
+function LeagueTag({ league }: { league: string }) {
+  return (
+    <span
+      title={league}
+      className="mr-1.5 inline-block rounded-[3px] border border-line-2 px-1 font-mono text-[9px] uppercase tracking-wider text-faint align-middle"
+    >
+      {LEAGUE_ABBR[league] ?? league.slice(0, 3)}
+    </span>
   );
 }
 

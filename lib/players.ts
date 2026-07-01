@@ -3,6 +3,7 @@
 
 import { getDb } from "./db.ts";
 import { enrichPlayers, loadModelConfig } from "./model.ts";
+import { loadLeagueStrength } from "./league-config.ts";
 import { matchSofascore } from "./merge.ts";
 import type {
   EnrichedPlayer,
@@ -120,12 +121,17 @@ function rawPlayers(league: string, season: string): RawPlayer[] {
     .all(league, season) as unknown as RawPlayer[];
 }
 
-/** Enriched players for a league-season + Sofascore xG merged in, ranked by OUT. */
-export function getEnrichedPlayers(league: string, season: string): Board {
+/** FBref rows for a league-season with Sofascore xG/xA/GP merged in, plus the
+ *  Δ-vs-last-snapshot map. The shared prep for both single- and cross-league. */
+function prepareRows(league: string, season: string): {
+  rows: RawPlayer[];
+  deltas: Map<string, Partial<Record<MetricKey, number>>>;
+  comparedTo: string | null;
+} {
   const rows = rawPlayers(league, season);
 
   // Merge Sofascore (xG/xA/goals prevented) onto FBref players by name+team.
-  const { map, matched, total } = matchSofascore(rows, sofascoreRows(league, season));
+  const { map } = matchSofascore(rows, sofascoreRows(league, season));
   const prev = previousSofascore(league);
   const deltas = new Map<string, Partial<Record<MetricKey, number>>>();
   for (const p of rows) {
@@ -145,24 +151,49 @@ export function getEnrichedPlayers(league: string, season: string): Board {
       deltas.set(`${p.team}::${p.player}`, d);
     }
   }
+  return { rows, deltas, comparedTo: prev.createdAt };
+}
 
-  const players = enrichPlayers(rows, loadModelConfig()).sort(
+function assemble(
+  rows: RawPlayer[],
+  deltas: Map<string, Partial<Record<MetricKey, number>>>,
+  comparedTo: string | null,
+  strengthOf?: (p: RawPlayer) => number,
+): Board {
+  const players = enrichPlayers(rows, loadModelConfig(), strengthOf).sort(
     (a, b) => (b.outputScore ?? -Infinity) - (a.outputScore ?? -Infinity),
   );
   for (const p of players) {
     const d = deltas.get(`${p.team}::${p.player}`);
     if (d) p.delta = d;
   }
-  // Report players that actually have an xG value, not just a name match —
-  // so a league the source omits xG for (Allsvenskan) honestly reads 0.
-  void matched;
+  // Count players that actually carry an xG value (not just a name match) — so
+  // a league the source omits xG for (Allsvenskan) honestly reads 0.
   const xgPresent = rows.filter((p) => p.xg != null).length;
-  return {
-    players,
-    xgMatched: xgPresent,
-    xgTotal: total,
-    comparedTo: prev.createdAt,
-  };
+  return { players, xgMatched: xgPresent, xgTotal: rows.length, comparedTo };
+}
+
+/** Enriched players for a league-season + Sofascore xG merged in, ranked by OUT. */
+export function getEnrichedPlayers(league: string, season: string): Board {
+  const { rows, deltas, comparedTo } = prepareRows(league, season);
+  return assemble(rows, deltas, comparedTo);
+}
+
+/** Every league's current-season players in ONE percentile pool, each league's
+ *  non-rate output discounted by its strength coefficient — a fair cross-league
+ *  ranking (the prospect finder). Single-league percentiles are left untouched. */
+export function getCrossLeaguePlayers(): Board {
+  const strength = loadLeagueStrength();
+  const allRows: RawPlayer[] = [];
+  const deltas = new Map<string, Partial<Record<MetricKey, number>>>();
+  let comparedTo: string | null = null;
+  for (const ls of getLeagueSeasons()) {
+    const r = prepareRows(ls.league, ls.season);
+    allRows.push(...r.rows);
+    for (const [k, v] of r.deltas) deltas.set(k, v);
+    comparedTo = comparedTo ?? r.comparedTo;
+  }
+  return assemble(allRows, deltas, comparedTo, (p) => strength[p.league] ?? 1);
 }
 
 /** Small search index for the ⌘K palette. */

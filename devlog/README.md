@@ -12,6 +12,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
 
 - **[2026-06-30](2026-06-30-multi-league-spillere.md)** — Multi-liga spillere
   (Allsvenskan + Eliteserien), kun aktuel sæson, dynamisk overskrift
+- **[2026-07-01](2026-07-01-cross-league.md)** — Cross-league sammenligning med
+  ligastyrke-justering (Elo-koefficienter, prospekt-finder)
 
 ## Tidslinje (kort)
 
@@ -25,4 +27,5 @@ med FBref som eneste kilde. Det er siden vokset:
    komponerbart filtersystem, +Filter-modal, altid-på median-farvning.
 4. **Hold-view** — team-performance (Hold) ved siden af Spillere, med afledt hold-xG.
 5. **Multi-liga** — Superliga + Allsvenskan + Eliteserien. Hold først, så spillere.
-6. **(denne post)** — spillere i alle 3 ligaer, kun aktuel sæson, dynamisk header.
+6. **Multi-liga spillere** — spillere i alle 3 ligaer, kun aktuel sæson, dynamisk header.
+7. **(seneste)** — cross-league sammenligning med ligastyrke-justering (Elo).

@@ -167,6 +167,29 @@ Læses per request, så vægte/grupper kan justeres live (bare refresh — ingen
   (npg, assists, skud...), målmænd på `keeperScore` (goals prevented, save%,
   clean sheets...).
 
+### Cross-league sammenligning (`config/leagues.json`)
+
+For at sammenligne spillere **på tværs af ligaer** (prospekt-jagt) skal man
+korrigere for at ligaerne ikke er lige stærke. Løsningen er en **ligastyrke-
+koefficient** pr. liga, grundet i gennemsnitlig klub-Elo fra clubelo.com,
+normaliseret så den stærkeste liga = 1.0 (Superliga 1.0, Eliteserien 0.961,
+Allsvenskan 0.916). Tallene bor i `config/leagues.json` med proveniens og er
+tunbare.
+
+Sådan bruges den (`getCrossLeaguePlayers()` + `enrichPlayers(..., strengthOf)`):
+
+- Alle ligaers spillere samles i **én pulje**; percentiler beregnes på tværs.
+- En spillers **non-rate output** (mål, assists, skud, xG...) ganges med ligaens
+  koefficient **inden** puljen bygges → svagere ligaer diskonteres, så det er
+  sværere at toppe rangeringen. Det er `rankValue` i model.ts.
+- **Kun rangeringen** påvirkes. De viste per-90-tal (`valueOf`) er altid rå.
+- **Rates skaleres ikke** (pass%, save%, konvertering, g−xG) — koefficienten ville
+  ødelægge enheden.
+- **Enkelt-liga-visninger er uændrede** (koefficient = 1 som default).
+
+I UI'et er det **⚑ Alle ligaer**-knappen (`/?league=ALL`); hver række får en
+liga-badge, og alle filtre virker på tværs. Hold-visningen forbliver per-liga.
+
 ## 8. Merge: FBref ↔ Sofascore
 
 Kilderne har forskellige id'er og let forskellige navne/stavemåder. `merge.ts`

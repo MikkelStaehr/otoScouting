@@ -54,6 +54,10 @@ function percentileOf(sortedAsc: number[], v: number): number {
 export function enrichPlayers(
   players: RawPlayer[],
   config: ModelConfig,
+  // Cross-league only: per-player league-strength coefficient. Discounts a
+  // player's non-rate output for the percentile POOL (and thus OUT), while the
+  // displayed per-90 values stay raw. Default 1 → single-league, unchanged.
+  strengthOf: (p: RawPlayer) => number = () => 1,
 ): EnrichedPlayer[] {
   const metrics = allMetrics(config);
   const rates = new Set(config.rates);
@@ -73,12 +77,22 @@ export function enrichPlayers(
   };
 
   // A metric's value for a player: derived formula, else null/rate/per-90.
+  // This is the DISPLAY value (what the table shows) — never league-adjusted.
   const valueOf = (p: RawPlayer, m: MetricKey): number | null => {
     const derive = DERIVED[m];
     if (derive) return derive(p);
     const raw = (p as unknown as Record<string, number | null>)[m];
     if (raw === null || raw === undefined) return null;
     return rates.has(m) ? raw : per90(raw, p.minutes);
+  };
+
+  // Value used for the percentile POOL: same as display, but non-rate output is
+  // scaled by the player's league coefficient so cross-league ranks are fair.
+  // Rates keep their unit (a pass% is a pass%). Single-league → coef 1 → equal.
+  const rankValue = (p: RawPlayer, m: MetricKey): number | null => {
+    const v = valueOf(p, m);
+    if (v === null) return null;
+    return rates.has(m) ? v : v * strengthOf(p);
   };
 
   const qualified = (p: RawPlayer) => p.minutes >= config.minMinutes;
@@ -91,7 +105,7 @@ export function enrichPlayers(
   for (const m of metrics) {
     const pool = isGk(m) ? keeperPool : outfieldPool;
     sorted[m] = pool
-      .map((p) => valueOf(p, m))
+      .map((p) => rankValue(p, m))
       .filter((v): v is number => v !== null)
       .sort((a, b) => a - b);
   }
@@ -117,16 +131,16 @@ export function enrichPlayers(
     const per90Map = {} as Record<MetricKey, number | null>;
     const percentile = {} as Record<MetricKey, number | null>;
     for (const m of metrics) {
-      const v = valueOf(p, m);
-      per90Map[m] = v;
+      per90Map[m] = valueOf(p, m); // raw display value (never league-adjusted)
       // Only rank a player on metrics of their own class: keepers on GK stats,
       // outfielders on the rest. Otherwise a keeper's 0 goals would percentile
       // against outfielders (tie-inflated) and read as a real ranking.
+      const rv = rankValue(p, m); // league-adjusted value for ranking
       const inPool = isGk(m) ? keeper : !keeper;
-      if (v === null || !inPool) {
+      if (rv === null || !inPool) {
         percentile[m] = null;
       } else {
-        const pct = percentileOf(sorted[m], v);
+        const pct = percentileOf(sorted[m], rv);
         percentile[m] = invert.has(m) ? 100 - pct : pct;
       }
     }

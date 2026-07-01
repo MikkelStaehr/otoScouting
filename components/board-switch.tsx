@@ -24,6 +24,7 @@ export function BoardSwitch({
   teams,
   teamOptions,
   selectedTeam,
+  crossLeague = false,
   groups,
   rates,
   comparedTo,
@@ -32,11 +33,16 @@ export function BoardSwitch({
   teams: EnrichedTeam[];
   teamOptions: LeagueSeasonOption[];
   selectedTeam: LeagueSeasonOption | null;
+  crossLeague?: boolean;
   groups: Record<GroupKey, MetricKey[]>;
   rates: MetricKey[];
   comparedTo: string | null;
 }) {
-  const [scope, setScope] = useState<"players" | "teams">("teams");
+  // Cross-league is a players-only view (team ranks are per-league), so open on
+  // Spillere when it's active; otherwise keep the Hold-first default.
+  const [scope, setScope] = useState<"players" | "teams">(
+    crossLeague ? "players" : "teams",
+  );
   const router = useRouter();
 
   const leagues = [...new Set(teamOptions.map((o) => o.league))];
@@ -53,7 +59,9 @@ export function BoardSwitch({
   // One selector drives both boards, so the header is just the selected
   // league/season; only the count + unit change with the active tab.
   const isTeams = scope === "teams";
-  const headLeague = selectedTeam?.league ?? "";
+  const headLeague = crossLeague
+    ? "Alle ligaer"
+    : (selectedTeam?.league ?? "").replace("-", " · ");
   const headLabel = selectedTeam?.season_label ?? "";
   const headCount = isTeams ? teams.length : players.length;
 
@@ -62,7 +70,7 @@ export function BoardSwitch({
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.25em] text-volt">
-            {headLeague.replace("-", " · ")}
+            {headLeague}
           </p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
             {headLabel}
@@ -100,7 +108,7 @@ export function BoardSwitch({
             {leagues.map((lg) => {
               const def =
                 teamOptions.find((o) => o.league === lg)?.season ?? "";
-              const active = selectedTeam?.league === lg;
+              const active = !crossLeague && selectedTeam?.league === lg;
               return (
                 <button
                   key={lg}
@@ -115,6 +123,18 @@ export function BoardSwitch({
                 </button>
               );
             })}
+            {/* Cross-league prospect view: pools all leagues, Elo-weighted. */}
+            <button
+              onClick={() => pick("ALL", "")}
+              title="Alle ligaer i én pulje — output vægtet efter ligastyrke (prospekt-finder)"
+              className={`rounded-md border px-3 py-1 font-mono text-xs transition-colors ${
+                crossLeague
+                  ? "border-volt/50 bg-volt/15 text-volt"
+                  : "border-dashed border-line-2 text-faint hover:text-muted"
+              }`}
+            >
+              ⚑ Alle ligaer
+            </button>
             {seasonsForSelected.length > 1 && (
               <span className="ml-1 flex items-center gap-1">
                 {seasonsForSelected.map((o) => (
@@ -138,7 +158,19 @@ export function BoardSwitch({
       </div>
 
       {scope === "players" ? (
-        <PlayerTable players={players} groups={groups} rates={rates} comparedTo={comparedTo} />
+        <PlayerTable
+          players={players}
+          groups={groups}
+          rates={rates}
+          comparedTo={comparedTo}
+          crossLeague={crossLeague}
+        />
+      ) : crossLeague ? (
+        <div className="rounded-xl border border-dashed border-line-2 bg-panel/30 px-5 py-10 text-center font-mono text-sm text-muted">
+          Hold-rangeringen er per liga (percentiler inden for hver liga).
+          <br />
+          Vælg en enkelt liga ovenfor for holdvisningen.
+        </div>
       ) : (
         <TeamTable teams={teams} />
       )}

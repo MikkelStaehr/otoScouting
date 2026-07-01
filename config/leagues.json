@@ -1,0 +1,18 @@
+{
+  "_comment": "League-strength coefficients for cross-league player comparison. Derived from average club Elo (clubelo.com, snapshot 2026-07-01), normalised so the strongest league = 1.0. Used to DISCOUNT per-90 output when ranking players across leagues: a weaker league's counting stats are multiplied by its coefficient before the shared percentile pool is computed. Rates (pass%, save%, conversion, g-xG, goals prevented) are NOT scaled — the coefficient would corrupt the unit. Single-league views are unaffected. Tunable: steepen the spread if you think the quality gap is larger than Elo implies (Elo differences are mild between these Nordic leagues).",
+  "strength": {
+    "DEN-Superliga": 1.0,
+    "NOR-Eliteserien": 0.961,
+    "SWE-Allsvenskan": 0.916
+  },
+  "eloSource": {
+    "provider": "clubelo.com",
+    "date": "2026-07-01",
+    "method": "mean club Elo, top division, normalised to strongest = 1.0",
+    "avgElo": {
+      "DEN-Superliga": 1492.6,
+      "NOR-Eliteserien": 1433.7,
+      "SWE-Allsvenskan": 1367.3
+    }
+  }
+}
