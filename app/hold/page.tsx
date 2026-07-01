@@ -3,5 +3,5 @@ import { DashboardPage } from "@/components/dashboard-page";
 export const dynamic = "force-dynamic";
 
 export default function Page() {
-  return <DashboardPage mode="players" />;
+  return <DashboardPage mode="teams" />;
 }

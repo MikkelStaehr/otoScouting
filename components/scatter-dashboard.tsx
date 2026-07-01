@@ -43,12 +43,10 @@ export function ScatterDashboard({
   players,
   teams,
   mode,
-  setMode,
 }: {
   players: PlayerPoint[];
   teams: TeamPoint[];
   mode: "players" | "teams";
-  setMode: (m: "players" | "teams") => void;
 }) {
   const [xKey, setXKey] = useState("goals");
   const [yKey, setYKey] = useState("xg");
@@ -59,14 +57,6 @@ export function ScatterDashboard({
   const axes = mode === "players" ? PLAYER_AXES : TEAM_AXES;
   const xAxis = axes.find((a) => a.key === xKey) ?? axes[0]!;
   const yAxis = axes.find((a) => a.key === yKey) ?? axes[1]!;
-
-  function switchMode(m: "players" | "teams") {
-    setMode(m);
-    const a = m === "players" ? PLAYER_AXES : TEAM_AXES;
-    if (!a.some((x) => x.key === xKey)) setXKey(a[0]!.key);
-    if (!a.some((x) => x.key === yKey)) setYKey(a[1]!.key);
-    setHover(null);
-  }
 
   const leagues = useMemo(() => {
     const src = mode === "players" ? players : teams;
@@ -136,20 +126,6 @@ export function ScatterDashboard({
     <div className="rounded-2xl border border-line bg-panel/30 p-3 sm:p-5">
       {/* controls */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="inline-flex overflow-hidden rounded-lg border border-line-2">
-          {(["players", "teams"] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => switchMode(m)}
-              className={`px-4 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
-                mode === m ? "bg-volt text-ink" : "bg-transparent text-muted hover:text-fg"
-              }`}
-            >
-              {m === "players" ? "Spillere" : "Hold"}
-            </button>
-          ))}
-        </div>
-
         <AxisSelect label="X" value={xKey} onChange={setXKey} axes={axes} />
         <AxisSelect label="Y" value={yKey} onChange={setYKey} axes={axes} />
 

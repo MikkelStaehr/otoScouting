@@ -6,7 +6,8 @@ import { openPalette } from "./command-palette";
 import { openSettings } from "./settings-modal";
 
 const NAV = [
-  { href: "/", label: "Dashboard" },
+  { href: "/", label: "Spillere" },
+  { href: "/hold", label: "Hold" },
   { href: "/board", label: "Database" },
 ];
 
