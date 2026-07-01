@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { EnrichedPlayer, GroupKey, MetricKey } from "@/lib/types";
 import { METRIC_LABEL, METRIC_NAME, METRIC_DESC, GROUP_LABEL } from "@/lib/metrics";
 import { flagUrl } from "@/lib/flags";
@@ -194,11 +194,14 @@ export function PlayerTable({
     return tokens.some((t) => positions.has(t));
   }
 
+  // Filter/sort/render off the deferred filter values so dragging a slider stays
+  // responsive — React updates the (heavy) table at low priority, not per pixel.
+  const dFilterValues = useDeferredValue(filterValues);
   const filtered = useMemo(() => {
     return players.filter((p) => {
       if (!matchesPosition(p)) return false;
       for (const key of activeFilters) {
-        const [min, max] = filterValues[key] ?? [0, 0];
+        const [min, max] = dFilterValues[key] ?? [0, 0];
         const b = fieldBounds[key]!;
         const v = fieldValue(p, key);
         const narrowed = min > b.min || max < b.max;
@@ -209,7 +212,7 @@ export function PlayerTable({
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [players, positions, activeFilters, filterValues, fieldBounds, mode]);
+  }, [players, positions, activeFilters, dFilterValues, fieldBounds, mode]);
 
   // ── sorting ──
   function metricSort(p: EnrichedPlayer, key: string): number | string {
