@@ -163,6 +163,7 @@ function prepareRows(league: string, season: string): {
   const deltas = new Map<string, Partial<Record<MetricKey, number>>>();
   for (const p of rows) {
     const s = map.get(`${p.team}::${p.player}`);
+    p.sofascore_id = s?.player_id ?? null;
     p.xg = s?.xg ?? null;
     p.xa = s?.xa ?? null;
     p.gk_goals_prevented = s?.goals_prevented ?? null;

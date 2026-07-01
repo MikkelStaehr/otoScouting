@@ -17,10 +17,12 @@ interface SimilarPlayer {
   key: string; player: string; team: string; league: string;
   age: number | null; pos: string | null; sim: number;
 }
+interface HeatmapData { w: number; h: number; grid: number[]; nPoints: number; matches: number | null }
 interface PlayerDetail {
   key: string; player: string; team: string; league: string;
   age: number | null; pos: string | null; posGroup: string;
   nation: string | null; minutes: number; out: number | null;
+  heatmap: HeatmapData | null;
   groups: SimGroup[]; similar: SimilarPlayer[];
 }
 
@@ -146,6 +148,20 @@ export function PlayerModal() {
             <div className="py-10 text-center font-mono text-sm text-faint">henter…</div>
           ) : (
             <>
+              {detail.heatmap && (
+                <div className="mb-5">
+                  <div className="mb-1.5 flex items-baseline justify-between">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">
+                      Heatmap
+                    </span>
+                    <span className="font-mono text-[10px] text-faint">
+                      hvor han er på banen{detail.heatmap.matches != null && ` · ${detail.heatmap.matches} kampe`}
+                    </span>
+                  </div>
+                  <Pitch hm={detail.heatmap} />
+                </div>
+              )}
+
               <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
                 {detail.groups.map((g) => (
                   <div key={g.label}>
@@ -200,6 +216,48 @@ export function PlayerModal() {
         </div>
       </div>
     </div>
+  );
+}
+
+function Pitch({ hm }: { hm: HeatmapData }) {
+  const W = 320;
+  const H = 208; // ~1.54 pitch aspect
+  const cw = W / hm.w;
+  const ch = H / hm.h;
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="w-full rounded-lg"
+      style={{ aspectRatio: `${W}/${H}`, background: "var(--color-ink-2)" }}
+    >
+      {hm.grid.map((v, i) => {
+        if (v <= 0.02) return null;
+        const col = i % hm.w;
+        const row = Math.floor(i / hm.w);
+        const a = Math.pow(v, 0.6); // gamma so faint zones still read
+        return (
+          <rect
+            key={i}
+            x={col * cw}
+            y={row * ch}
+            width={cw + 0.6}
+            height={ch + 0.6}
+            fill={`rgba(197,90,48,${a})`}
+          />
+        );
+      })}
+      {/* pitch markings */}
+      <g stroke="var(--color-line-2)" strokeWidth={1} fill="none" opacity={0.6}>
+        <rect x={1} y={1} width={W - 2} height={H - 2} rx={2} />
+        <line x1={W / 2} y1={2} x2={W / 2} y2={H - 2} />
+        <circle cx={W / 2} cy={H / 2} r={24} />
+        <rect x={1} y={H / 2 - 36} width={42} height={72} />
+        <rect x={W - 43} y={H / 2 - 36} width={42} height={72} />
+      </g>
+      <text x={W - 6} y={13} textAnchor="end" className="fill-faint" style={{ fontSize: 9, fontFamily: "monospace" }}>
+        angreb →
+      </text>
+    </svg>
   );
 }
 

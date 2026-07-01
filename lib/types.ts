@@ -38,6 +38,7 @@ export interface RawPlayer {
   gk_pk_saved: number | null;
   weekly_wage: number | null;
   // Sofascore (Opta-style) fields, attached by the merge — null if unmatched
+  sofascore_id: number | null; // Sofascore player id (for heatmap lookup)
   xg: number | null;
   xa: number | null;
   gk_goals_prevented: number | null;

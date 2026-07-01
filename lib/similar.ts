@@ -6,6 +6,7 @@
 
 import { getCrossLeaguePlayers } from "./players.ts";
 import { loadModelConfig } from "./model.ts";
+import { getHeatmap, type Heatmap } from "./heatmap.ts";
 import { METRIC_NAME, GROUP_LABEL } from "./metrics.ts";
 import type { EnrichedPlayer, GroupKey, MetricKey } from "./types.ts";
 
@@ -54,6 +55,7 @@ export interface PlayerDetail {
   nation: string | null;
   minutes: number;
   out: number | null;
+  heatmap: Heatmap | null;
   groups: SimGroup[];
   similar: SimilarPlayer[];
 }
@@ -132,6 +134,7 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     nation: target.nation,
     minutes: target.minutes,
     out: target.outputScore == null ? null : Math.round(target.outputScore),
+    heatmap: getHeatmap(target.league, target.season, target.sofascore_id),
     groups,
     similar,
   };
