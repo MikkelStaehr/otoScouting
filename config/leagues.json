@@ -1,9 +1,9 @@
 {
-  "_comment": "OtoScout league registry — the SINGLE source of truth for every league. Both Python pipelines read it (pipeline/registry.py) and the Node read layer reads `strength` (lib/league-config.ts). Adding a league = add one entry here, run pipeline/update_coefficients.py (fills strength/avgElo from clubelo), then fetch. Fields: sofascore = Sofascore unique-tournament id; sofascoreSeason = the season string ScraperFC wants (cross-year 'YY/YY', calendar 'YYYY'); fbref = the FBref competition name; fbrefSeason = soccerdata season ('YYYY-YYYY' cross-year, 'YYYY' calendar); seasonStart/seasonEnd = months for soccerdata's custom-league config (cross-year Aug–May, calendar Mar–Nov/Dec); clubelo = clubelo.com country code (for the strength coefficient); espn = ESPN league code (for crest ids); strength = league-strength coefficient (1.0 = strongest), avgElo = its source. strength/avgElo are maintained by pipeline/update_coefficients.py.",
+  "_comment": "OtoScout league registry — the SINGLE source of truth for every league. Both Python pipelines read it (pipeline/registry.py) and the Node read layer reads `strength` (lib/league-config.ts). Adding a league = add one entry here, run pipeline/update_coefficients.py (fills strength/avgElo from clubelo), then ingest. Fields: sofascore = Sofascore unique-tournament id (verify by name!); sofascoreSeason = the season string ScraperFC wants (cross-year 'YY/YY', calendar 'YYYY'); fbref = the FBref competition name; fbrefSeason = soccerdata season ('YYYY-YYYY' cross-year, 'YYYY' calendar); seasonStart/seasonEnd = months for soccerdata's custom-league config; clubelo = clubelo.com country code, clubeloLevel = 1 top flight / 2 second tier (default 1); espn = ESPN league code (crest ids); strength/avgElo = maintained by pipeline/update_coefficients.py.",
   "eloSource": {
     "provider": "clubelo.com",
     "date": "2026-07-01",
-    "method": "mean club Elo, top division, normalised to strongest = 1.0"
+    "method": "mean club Elo for the league's country+level, normalised to strongest registered = 1.0"
   },
   "leagues": {
     "DEN-Superliga": {
@@ -15,7 +15,7 @@
       "seasonEnd": "May",
       "clubelo": "DEN",
       "espn": "den.1",
-      "strength": 1.0,
+      "strength": 0.971,
       "avgElo": 1492.6
     },
     "NOR-Eliteserien": {
@@ -27,7 +27,7 @@
       "seasonEnd": "Dec",
       "clubelo": "NOR",
       "espn": "nor.1",
-      "strength": 0.961,
+      "strength": 0.933,
       "avgElo": 1433.7
     },
     "SWE-Allsvenskan": {
@@ -39,8 +39,166 @@
       "seasonEnd": "Nov",
       "clubelo": "SWE",
       "espn": "swe.1",
-      "strength": 0.916,
+      "strength": 0.889,
       "avgElo": 1367.3
+    },
+    "NED-Eredivisie": {
+      "sofascore": 37,
+      "sofascoreSeason": "25/26",
+      "fbref": "Eredivisie",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "NED",
+      "espn": "ned.1",
+      "strength": 0.952,
+      "avgElo": 1463.9
+    },
+    "POR-PrimeiraLiga": {
+      "sofascore": 238,
+      "sofascoreSeason": "25/26",
+      "fbref": "Primeira Liga",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "POR",
+      "espn": "por.1",
+      "strength": 1.0,
+      "avgElo": 1537.3
+    },
+    "ENG-Championship": {
+      "sofascore": 18,
+      "sofascoreSeason": "25/26",
+      "fbref": "Championship",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "ENG",
+      "clubeloLevel": 2,
+      "espn": "eng.2",
+      "strength": 0.99,
+      "avgElo": 1521.6
+    },
+    "GER-2Bundesliga": {
+      "sofascore": 44,
+      "sofascoreSeason": "25/26",
+      "fbref": "2. Bundesliga",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "GER",
+      "clubeloLevel": 2,
+      "espn": "ger.2",
+      "strength": 0.944,
+      "avgElo": 1451.1
+    },
+    "BEL-ProLeague": {
+      "sofascore": 38,
+      "sofascoreSeason": "25/26",
+      "fbref": "Belgian Pro League",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "BEL",
+      "espn": "bel.1",
+      "strength": 0.979,
+      "avgElo": 1505.2
+    },
+    "AUT-Bundesliga": {
+      "sofascore": 45,
+      "sofascoreSeason": "25/26",
+      "fbref": "Austrian Bundesliga",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "AUT",
+      "espn": "aut.1",
+      "strength": 0.887,
+      "avgElo": 1363.6
+    },
+    "SUI-SuperLeague": {
+      "sofascore": 215,
+      "sofascoreSeason": "25/26",
+      "fbref": "Swiss Super League",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "SUI",
+      "espn": "sui.1",
+      "strength": 0.899,
+      "avgElo": 1382.4
+    },
+    "SCO-Premiership": {
+      "sofascore": 36,
+      "sofascoreSeason": "25/26",
+      "fbref": "Scottish Premiership",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "SCO",
+      "espn": "sco.1",
+      "strength": 0.875,
+      "avgElo": 1344.9
+    },
+    "POL-Ekstraklasa": {
+      "sofascore": 202,
+      "sofascoreSeason": "25/26",
+      "fbref": "Ekstraklasa",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Jul",
+      "seasonEnd": "May",
+      "clubelo": "POL",
+      "espn": "pol.1",
+      "strength": 0.918,
+      "avgElo": 1410.8
+    },
+    "CRO-HNL": {
+      "sofascore": 170,
+      "sofascoreSeason": "25/26",
+      "fbref": "Croatian Football League",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "CRO",
+      "espn": "cro.1",
+      "strength": 0.875,
+      "avgElo": 1344.8
+    },
+    "CZE-FirstLeague": {
+      "sofascore": 172,
+      "sofascoreSeason": "25/26",
+      "fbref": "Czech First League",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Jul",
+      "seasonEnd": "May",
+      "clubelo": "CZE",
+      "espn": "cze.1",
+      "strength": 0.909,
+      "avgElo": 1398.1
+    },
+    "FIN-Veikkausliiga": {
+      "sofascore": 41,
+      "sofascoreSeason": "2026",
+      "fbref": "Veikkausliiga",
+      "fbrefSeason": "2026",
+      "seasonStart": "Apr",
+      "seasonEnd": "Oct",
+      "clubelo": "FIN",
+      "espn": "fin.1",
+      "strength": 0.8,
+      "avgElo": null
+    },
+    "ISL-Bestadeild": {
+      "sofascore": 188,
+      "sofascoreSeason": "2026",
+      "fbref": "Úrvalsdeild",
+      "fbrefSeason": "2026",
+      "seasonStart": "May",
+      "seasonEnd": "Oct",
+      "clubelo": "ISL",
+      "espn": "isl.1",
+      "strength": 0.72,
+      "avgElo": null
     }
   }
 }
