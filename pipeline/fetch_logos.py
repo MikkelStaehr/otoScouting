@@ -1,35 +1,51 @@
 #!/usr/bin/env python
-"""Generate config/team-logos.json — normalised team name -> ESPN crest id.
+"""Download every team's Sofascore crest and self-host it — 100% coverage, since
+every team in scouting.db has a sofascore_team_id.
 
-For each league with an `espn` code in the registry, pull ESPN's team list and
-match every team name we actually store (FBref + Sofascore spellings) to an ESPN
-id by normalised-name overlap. lib/team-logos.ts reads the JSON and keeps norm().
+Sofascore's image endpoint is Cloudflare-protected, so we fetch the bytes through
+a real browser (which passes the challenge), save them to
+public/logos/sofascore/{id}.png, and write config/team-logos.json mapping each
+normalised team name (FBref + Sofascore spellings) to its Sofascore id.
+lib/team-logos.ts then serves the local file. Re-runs skip crests already on disk.
 
   python pipeline/fetch_logos.py
-
-ESPN's soccer coverage is partial (no Poland/Croatia/Czech/Finland/Iceland right
-now); unmatched teams simply get no crest.
 """
 
 from __future__ import annotations
 
+import base64
 import json
 import re
 import sqlite3
 import sys
 import unicodedata
-import urllib.request
 from pathlib import Path
 
-from registry import load_leagues
+from botasaurus.browser import browser
 
 ROOT = Path(__file__).resolve().parent.parent
+LOGO_DIR = ROOT / "public" / "logos" / "sofascore"
 OUT = ROOT / "config" / "team-logos.json"
-ESPN = "https://site.api.espn.com/apis/site/v2/sports/soccer/{code}/teams"
+
+
+# FBref uses short/abbreviated names for a handful of clubs that don't token-match
+# the Sofascore full name — pin them by id (norm(FBref name) -> sofascore_team_id).
+FBREF_ALIAS: dict[str, int] = {
+    "rz pellets wac": 2076,        # Wolfsberger AC
+    "qpr": 1,                      # Queens Park Rangers
+    "kups": 2244,                  # Kuopion Palloseura
+    "tps": 2254,                   # Turun Palloseura
+    "btsv": 2557,                  # Eintracht Braunschweig
+    "aalesund": 677,              # Aalesunds FK
+    "vit guimaraes": 3009,         # Vitória SC (Guimarães)
+    "hearts": 2353,                # Heart of Midlothian
+    "djurgarden": 1759,            # Djurgårdens IF
+    "halmstad": 1767,              # Halmstads BK
+}
 
 
 def norm(team: str) -> str:
-    """Mirror lib/team-logos.ts norm() exactly so keys match at lookup time."""
+    """Mirror lib/team-logos.ts norm() so keys match at lookup time."""
     t = team.lower().replace("ø", "o").replace("æ", "ae").replace("å", "a")
     t = "".join(c for c in unicodedata.normalize("NFD", t) if not unicodedata.combining(c))
     t = re.sub(r"[^a-z\s]", " ", t)
@@ -38,54 +54,48 @@ def norm(team: str) -> str:
     return re.sub(r"\s+", " ", t).strip()
 
 
-def fetch_espn(code: str) -> list[tuple[int, list[str]]]:
-    """(espn id, [name variants]) for a league, or [] if ESPN lacks it."""
-    try:
-        with urllib.request.urlopen(ESPN.format(code=code), timeout=25) as r:
-            d = json.loads(r.read().decode("utf-8"))
-        teams = d["sports"][0]["leagues"][0]["teams"]
-    except Exception:
-        return []
-    out = []
-    for t in teams:
-        tt = t["team"]
-        variants = {tt.get(k, "") for k in ("displayName", "shortDisplayName", "name", "location")}
-        out.append((int(tt["id"]), [v for v in variants if v]))
-    return out
+_FETCH_JS = (
+    'return fetch("https://api.sofascore.com/api/v1/team/{id}/image")'
+    '.then(function(r){{return r.ok?r.blob():"x";}})'
+    '.then(function(b){{return (typeof b==="string")?b:'
+    "new Promise(function(res){{var fr=new FileReader();"
+    "fr.onloadend=function(){{res(fr.result);}};fr.readAsDataURL(b);}});}});"
+)
 
 
-def best_match(db_norm: str, espn: list[tuple[int, set[str], set[str]]]) -> int | None:
-    """Exact normalised variant, else strongest token overlap."""
-    db_tok = set(db_norm.split())
-    if not db_tok:
+@browser(headless=True, block_images_and_css=True, output=None, create_error_logs=False)
+def download(driver, ids):
+    driver.get("https://www.sofascore.com/")  # pass Cloudflare once, reuse cookies
+    got = 0
+    for tid in ids:
+        try:
+            b64 = driver.run_js(_FETCH_JS.format(id=tid))
+        except Exception:
+            b64 = None
+        if isinstance(b64, str) and b64.startswith("data:image"):
+            (LOGO_DIR / f"{tid}.png").write_bytes(base64.b64decode(b64.split(",", 1)[1]))
+            got += 1
+    return got
+
+
+def best_match(fb_norm: str, cands: list[tuple[int, str, set[str]]]) -> int | None:
+    tok = set(fb_norm.split())
+    if not tok:
         return None
-    for eid, variants, _ in espn:
-        if db_norm in variants:
-            return eid
-    best, best_score = None, 0.0
-    for eid, _, tokens in espn:
-        if not tokens:
+    for tid, nk, _ in cands:
+        if nk == fb_norm:
+            return tid
+    best, score = None, 0.0
+    for tid, _, ctok in cands:
+        if not ctok:
             continue
-        inter = len(db_tok & tokens)
+        inter = len(tok & ctok)
         if not inter:
             continue
-        # subset either way (e.g. "ajax" ⊆ "ajax amsterdam") or high Jaccard
-        score = max(inter / len(db_tok), inter / len(tokens))
-        if score > best_score:
-            best, best_score = eid, score
-    return best if best_score >= 0.5 else None
-
-
-def db_team_names(conn: sqlite3.Connection, league: str) -> set[str]:
-    names: set[str] = set()
-    for tbl, col in (("sofascore_teams", "team"), ("players", "team")):
-        try:
-            for (n,) in conn.execute(f"SELECT DISTINCT {col} FROM {tbl} WHERE league=?", (league,)):
-                if n:
-                    names.add(n)
-        except sqlite3.OperationalError:
-            pass
-    return names
+        s = max(inter / len(tok), inter / len(ctok))
+        if s > score:
+            best, score = tid, s
+    return best if score >= 0.5 else None
 
 
 def main() -> int:
@@ -94,40 +104,50 @@ def main() -> int:
     except Exception:
         pass
 
-    leagues = load_leagues()
+    LOGO_DIR.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(ROOT / "scouting.db")
+    sofas = conn.execute(
+        "SELECT league, team, sofascore_team_id FROM sofascore_teams"
+    ).fetchall()
+
+    # 1. download crests we don't already have (one browser session)
+    ids = sorted({r[2] for r in sofas if r[2]})
+    missing = [i for i in ids if not (LOGO_DIR / f"{i}.png").exists()]
+    print(f"{len(ids)} teams, {len(missing)} crests to download…", flush=True)
+    if missing:
+        got = download([missing])  # wrapped list = single session
+        print(f"  downloaded {got}", flush=True)
+
+    # 2. name -> id map (Sofascore spellings + fuzzy-matched FBref spellings)
     mapping: dict[str, int] = {}
-    print("Building team-logos.json…")
-    for lk, cfg in leagues.items():
-        code = cfg.get("espn")
-        if not code:
+    per_league: dict[str, list[tuple[int, str, set[str]]]] = {}
+    for lg, team, tid in sofas:
+        if not tid:
             continue
-        raw = fetch_espn(code)
-        if not raw:
-            print(f"  {lk:<20} ESPN '{code}' — no data (skipped)")
+        nk = norm(team)
+        mapping[nk] = tid
+        per_league.setdefault(lg, []).append((tid, nk, set(nk.split())))
+
+    unmatched: list[str] = []
+    for lg, team in conn.execute("SELECT DISTINCT league, team FROM players"):
+        nk = norm(team)
+        if nk in mapping:
             continue
-        espn = [(eid, {norm(v) for v in vs}, set(norm(" ".join(vs)).split())) for eid, vs in raw]
-        # ESPN's own spellings resolve too
-        for eid, variants, _ in espn:
-            for v in variants:
-                mapping.setdefault(v, eid)
-        names = db_team_names(conn, lk)
-        matched = 0
-        unmatched = []
-        for name in names:
-            nk = norm(name)
-            eid = best_match(nk, espn)
-            if eid:
-                mapping[nk] = eid
-                matched += 1
-            else:
-                unmatched.append(name)
-        tag = f"{matched}/{len(names)}"
-        print(f"  {lk:<20} ESPN '{code}' — {tag} matched" + (f"  ! {unmatched}" if unmatched else ""))
+        tid = FBREF_ALIAS.get(nk) or best_match(nk, per_league.get(lg, []))
+        if tid:
+            mapping[nk] = tid
+        else:
+            unmatched.append(f"{lg}:{team}")
     conn.close()
 
-    OUT.write_text(json.dumps(dict(sorted(mapping.items())), indent=0, ensure_ascii=False) + "\n", "utf-8")
-    print(f"\nWrote {len(mapping)} keys -> {OUT}")
+    OUT.write_text(
+        json.dumps(dict(sorted(mapping.items())), indent=0, ensure_ascii=False) + "\n",
+        "utf-8",
+    )
+    on_disk = len(list(LOGO_DIR.glob("*.png")))
+    print(f"\n{on_disk} crests on disk · {len(mapping)} name keys -> {OUT}")
+    if unmatched:
+        print(f"unmatched FBref teams ({len(unmatched)}): {', '.join(unmatched[:15])}")
     return 0
 
 
