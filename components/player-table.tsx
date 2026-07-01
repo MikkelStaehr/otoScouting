@@ -18,7 +18,7 @@ const VIEW_ORDER: View[] = ["overview", "offensive", "defensive", "goalkeeping"]
 const VIEW_GROUPS: Record<View, GroupKey[]> = {
   overview: [],
   offensive: ["offensive", "expected", "efficiency"],
-  defensive: ["defensive"],
+  defensive: ["defensive", "buildup"],
   goalkeeping: ["goalkeeping"],
 };
 const VIEW_LABEL: Record<View, string> = {

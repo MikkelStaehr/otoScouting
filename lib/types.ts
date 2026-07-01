@@ -41,6 +41,20 @@ export interface RawPlayer {
   xg: number | null;
   xa: number | null;
   gk_goals_prevented: number | null;
+  // Sofascore defensive + build-up (also merged from sofascore_players)
+  tackles: number | null;
+  clearances: number | null;
+  blocks: number | null;
+  ball_recovery: number | null;
+  poss_won_att_third: number | null;
+  aerial_won: number | null;
+  duels_won_pct: number | null;
+  errors: number | null;
+  pass_pct: number | null;
+  passes: number | null;
+  long_balls: number | null;
+  long_ball_pct: number | null;
+  final_third_passes: number | null;
 }
 
 /** Stat groups the table is divided into. */
@@ -49,6 +63,7 @@ export type GroupKey =
   | "expected"
   | "efficiency"
   | "defensive"
+  | "buildup"
   | "goalkeeping";
 
 /** Counting stats that can be expressed per-90 + percentile-ranked. */
@@ -77,7 +92,21 @@ export type MetricKey =
   | "xg"
   | "xa"
   | "g_minus_xg"
-  | "gk_goals_prevented";
+  | "gk_goals_prevented"
+  // Sofascore defensive + build-up (Opta-style)
+  | "tackles"
+  | "clearances"
+  | "blocks"
+  | "ball_recovery"
+  | "poss_won_att_third"
+  | "aerial_won"
+  | "duels_won_pct"
+  | "errors"
+  | "pass_pct"
+  | "passes"
+  | "long_balls"
+  | "long_ball_pct"
+  | "final_third_passes";
 
 /**
  * A player enriched with the model: per-90 (or rate) values, percentiles, and

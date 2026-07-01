@@ -20,6 +20,20 @@ interface SofaRow {
   xg: number | null;
   xa: number | null;
   goals_prevented: number | null;
+  // defensive + build-up
+  tackles: number | null;
+  clearances: number | null;
+  blocked_shots: number | null;
+  ball_recovery: number | null;
+  poss_won_att_third: number | null;
+  aerial_duels_won: number | null;
+  duels_won_pct: number | null;
+  error_lead_to_shot: number | null;
+  pass_accuracy_pct: number | null;
+  total_passes: number | null;
+  accurate_long_balls: number | null;
+  long_ball_accuracy_pct: number | null;
+  accurate_final_third_passes: number | null;
 }
 
 /** Sofascore rows for a league-season; [] if the table hasn't been built yet. */
@@ -27,7 +41,12 @@ function sofascoreRows(league: string, season: string): SofaRow[] {
   try {
     return getDb()
       .prepare(
-        `SELECT player, team, player_id, xg, xa, goals_prevented
+        `SELECT player, team, player_id, xg, xa, goals_prevented,
+                tackles, clearances, blocked_shots, ball_recovery,
+                poss_won_att_third, aerial_duels_won, duels_won_pct,
+                error_lead_to_shot, pass_accuracy_pct, total_passes,
+                accurate_long_balls, long_ball_accuracy_pct,
+                accurate_final_third_passes
            FROM sofascore_players WHERE league = ? AND season = ?`,
       )
       .all(league, season) as unknown as SofaRow[];
@@ -139,6 +158,20 @@ function prepareRows(league: string, season: string): {
     p.xg = s?.xg ?? null;
     p.xa = s?.xa ?? null;
     p.gk_goals_prevented = s?.goals_prevented ?? null;
+    // Sofascore defensive + build-up
+    p.tackles = s?.tackles ?? null;
+    p.clearances = s?.clearances ?? null;
+    p.blocks = s?.blocked_shots ?? null;
+    p.ball_recovery = s?.ball_recovery ?? null;
+    p.poss_won_att_third = s?.poss_won_att_third ?? null;
+    p.aerial_won = s?.aerial_duels_won ?? null;
+    p.duels_won_pct = s?.duels_won_pct ?? null;
+    p.errors = s?.error_lead_to_shot ?? null;
+    p.pass_pct = s?.pass_accuracy_pct ?? null;
+    p.passes = s?.total_passes ?? null;
+    p.long_balls = s?.accurate_long_balls ?? null;
+    p.long_ball_pct = s?.long_ball_accuracy_pct ?? null;
+    p.final_third_passes = s?.accurate_final_third_passes ?? null;
 
     // Δ vs the previous Sofascore snapshot, matched by stable Sofascore id.
     const pv = s ? prev.byId.get(s.player_id) : undefined;

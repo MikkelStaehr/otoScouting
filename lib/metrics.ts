@@ -27,6 +27,19 @@ export const METRIC_LABEL: Record<MetricKey, string> = {
   xa: "xA",
   g_minus_xg: "G−xG",
   gk_goals_prevented: "GP",
+  tackles: "Tkl",
+  clearances: "Clr",
+  blocks: "Blk",
+  ball_recovery: "Rec",
+  poss_won_att_third: "Win⅓",
+  aerial_won: "Aer",
+  duels_won_pct: "Duel%",
+  errors: "Err",
+  pass_pct: "Pass%",
+  passes: "Pass",
+  long_balls: "LB",
+  long_ball_pct: "LB%",
+  final_third_passes: "F3P",
 };
 
 // Danish "oversættelse" shown as hover tooltips.
@@ -54,6 +67,19 @@ export const METRIC_DESC: Record<MetricKey, string> = {
   xa: "Expected assists (Sofascore) — forventede assists",
   g_minus_xg: "Mål minus xG: afslutning over/under forventning (min. 20 skud)",
   gk_goals_prevented: "Goals prevented: reddede mål over forventning (post-shot xG − mål imod)",
+  tackles: "Tacklinger i alt (Sofascore)",
+  clearances: "Clearances — bolde ryddet fra farezonen",
+  blocks: "Blokerede skud",
+  ball_recovery: "Boldgenerobringer — løse bolde vundet",
+  poss_won_att_third: "Bold vundet i sidste tredjedel (high press)",
+  aerial_won: "Vundne luftdueller",
+  duels_won_pct: "Andel vundne dueller i % (højere er bedre)",
+  errors: "Fejl der fører til skud imod (lavere er bedre)",
+  pass_pct: "Afleveringspræcision i % (højere er bedre)",
+  passes: "Antal afleveringer (spilinvolvering)",
+  long_balls: "Præcise lange bolde",
+  long_ball_pct: "Lange boldes præcision i % (højere er bedre)",
+  final_third_passes: "Præcise afleveringer i sidste tredjedel (fremdrift)",
 };
 
 // Full, readable names (for the filter picker etc.). Abbreviations live in
@@ -82,6 +108,19 @@ export const METRIC_NAME: Record<MetricKey, string> = {
   xa: "Expected assists",
   g_minus_xg: "Mål minus xG",
   gk_goals_prevented: "Goals prevented",
+  tackles: "Tacklinger",
+  clearances: "Clearances",
+  blocks: "Blokeringer",
+  ball_recovery: "Boldgenerobringer",
+  poss_won_att_third: "Erobringer i sidste tredjedel",
+  aerial_won: "Vundne luftdueller",
+  duels_won_pct: "Vundne dueller %",
+  errors: "Fejl → skud",
+  pass_pct: "Afleveringspræcision",
+  passes: "Afleveringer",
+  long_balls: "Præcise lange bolde",
+  long_ball_pct: "Lange bolde %",
+  final_third_passes: "Afleveringer i sidste tredjedel",
 };
 
 export const GROUP_LABEL: Record<GroupKey, string> = {
@@ -89,5 +128,6 @@ export const GROUP_LABEL: Record<GroupKey, string> = {
   expected: "Expected (xG)",
   efficiency: "Efficiency",
   defensive: "Defensive",
+  buildup: "Opspil",
   goalkeeping: "Goalkeeping",
 };

@@ -5,11 +5,12 @@
     "offensive": ["goals", "assists", "npg", "shots", "sot", "crosses", "fouled"],
     "expected": ["xg", "xa", "g_minus_xg"],
     "efficiency": ["conv_pct", "sot_pct", "g_per_sot"],
-    "defensive": ["interceptions", "tackles_won", "fouls"],
+    "defensive": ["tackles", "tackles_won", "interceptions", "clearances", "blocks", "ball_recovery", "poss_won_att_third", "aerial_won", "duels_won_pct", "errors"],
+    "buildup": ["pass_pct", "passes", "final_third_passes", "long_balls", "long_ball_pct"],
     "goalkeeping": ["gk_goals_prevented", "gk_saves", "gk_clean_sheets", "gk_save_pct", "gk_ga", "gk_sota", "gk_pk_saved"]
   },
-  "rates": ["gk_save_pct", "conv_pct", "sot_pct", "g_per_sot", "g_minus_xg", "gk_goals_prevented"],
-  "invert": ["gk_ga", "gk_sota"],
+  "rates": ["gk_save_pct", "conv_pct", "sot_pct", "g_per_sot", "g_minus_xg", "gk_goals_prevented", "duels_won_pct", "pass_pct", "long_ball_pct"],
+  "invert": ["gk_ga", "gk_sota", "errors"],
   "derived": { "minShots": 20, "minSot": 8 },
   "outputScore": {
     "weights": {
