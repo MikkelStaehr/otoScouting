@@ -16,6 +16,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   ligastyrke-justering (Elo-koefficienter, prospekt-finder)
 - **[2026-07-01](2026-07-01-league-registry.md)** — Liga-registry: ét sted at
   tilføje ligaer (fundament før skalering til ~18 ligaer)
+- **[2026-07-01](2026-07-01-scouting-buildout.md)** — Fra fundament til værktøj:
+  16 ligaer i drift, dashboard, forsvars/skabelses-data, spiller-similaritet, logoer
 
 ## Tidslinje (kort)
 
