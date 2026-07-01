@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { teamLogoUrl } from "@/lib/team-logos";
+import { openPlayer } from "./player-modal";
 
 export interface DashPlayer {
   n: string;
@@ -91,18 +92,18 @@ function Card({
   onOpen: () => void;
 }) {
   return (
-    <button
-      onClick={onOpen}
-      className="group flex flex-col rounded-xl border border-line bg-panel/30 p-3.5 text-left transition-colors hover:border-volt/40"
-    >
+    <div className="flex flex-col rounded-xl border border-line bg-panel/30 p-3.5">
       <div className="mb-2 flex items-start justify-between border-b border-line/60 pb-2">
         <div>
           <div className="font-display text-sm font-bold text-fg">{spec.title}</div>
           <div className="font-mono text-[10px] uppercase tracking-wider text-faint">{spec.sub}</div>
         </div>
-        <span className="shrink-0 font-mono text-[10px] text-faint transition-colors group-hover:text-volt">
+        <button
+          onClick={onOpen}
+          className="shrink-0 font-mono text-[10px] text-faint transition-colors hover:text-volt"
+        >
           alle {rows.length} →
-        </span>
+        </button>
       </div>
       {rows.length === 0 ? (
         <div className="py-6 text-center font-mono text-xs text-faint">ingen data endnu</div>
@@ -113,7 +114,7 @@ function Card({
           ))}
         </ol>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -192,19 +193,22 @@ function Row({
   big?: boolean;
 }) {
   return (
-    <li
-      className={`flex items-center gap-2 rounded-md px-1.5 text-sm transition-colors hover:bg-panel/60 ${big ? "py-1.5" : "py-1"}`}
-    >
-      <span className="tnum w-6 shrink-0 text-right font-mono text-[11px] text-faint">{i + 1}</span>
-      <Crest team={p.t} />
-      <span className="min-w-0 flex-1 truncate">
-        <span className="text-fg">{p.n}</span>
-        <span className="ml-1.5 font-mono text-[10px] text-faint">
-          {p.t} · {LEAGUE_ABBR(p.lg)}
+    <li>
+      <button
+        onClick={() => openPlayer(`${p.t}::${p.n}`)}
+        className={`flex w-full items-center gap-2 rounded-md px-1.5 text-left text-sm transition-colors hover:bg-panel/60 ${big ? "py-1.5" : "py-1"}`}
+      >
+        <span className="tnum w-6 shrink-0 text-right font-mono text-[11px] text-faint">{i + 1}</span>
+        <Crest team={p.t} />
+        <span className="min-w-0 flex-1 truncate">
+          <span className="text-fg">{p.n}</span>
+          <span className="ml-1.5 font-mono text-[10px] text-faint">
+            {p.t} · {LEAGUE_ABBR(p.lg)}
+          </span>
         </span>
-      </span>
-      {hint && <span className="shrink-0 font-mono text-[10px] text-muted">{hint}</span>}
-      <span className="tnum shrink-0 font-mono text-xs font-semibold text-volt">{v}</span>
+        {hint && <span className="shrink-0 font-mono text-[10px] text-muted">{hint}</span>}
+        <span className="tnum shrink-0 font-mono text-xs font-semibold text-volt">{v}</span>
+      </button>
     </li>
   );
 }

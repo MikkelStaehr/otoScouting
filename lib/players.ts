@@ -1,6 +1,8 @@
 // App-facing queries. Returns small, browser-safe view models — the enriched
 // player array for a league-season is computed server-side once per request.
 
+import { statSync } from "node:fs";
+import { join } from "node:path";
 import { getDb } from "./db.ts";
 import { enrichPlayers, loadModelConfig } from "./model.ts";
 import { loadLeagueStrength } from "./league-config.ts";
@@ -223,10 +225,35 @@ export function getEnrichedPlayers(league: string, season: string): Board {
   return assemble(rows, deltas, comparedTo);
 }
 
+// Data changes only on an ingest or a config tweak; key the cache on the file
+// mtimes so app opens are instant reads and re-derive only when data actually
+// changes (this is the "read from DB, don't recompute every time" fix).
+function dataVersion(): string {
+  return ["scouting.db", "config/model.json", "config/leagues.json"]
+    .map((f) => {
+      try {
+        return statSync(join(process.cwd(), f)).mtimeMs;
+      } catch {
+        return 0;
+      }
+    })
+    .join("-");
+}
+
+let clCache: { version: string; board: Board } | null = null;
+
 /** Every league's current-season players in ONE percentile pool, each league's
  *  non-rate output discounted by its strength coefficient — a fair cross-league
- *  ranking (the prospect finder). Single-league percentiles are left untouched. */
+ *  ranking (the prospect finder). Cached until the DB/config changes. */
 export function getCrossLeaguePlayers(): Board {
+  const version = dataVersion();
+  if (clCache && clCache.version === version) return clCache.board;
+  const board = computeCrossLeaguePlayers();
+  clCache = { version, board };
+  return board;
+}
+
+function computeCrossLeaguePlayers(): Board {
   const strength = loadLeagueStrength();
   const allRows: RawPlayer[] = [];
   const deltas = new Map<string, Partial<Record<MetricKey, number>>>();

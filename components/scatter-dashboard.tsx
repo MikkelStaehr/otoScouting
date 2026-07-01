@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { PLAYER_AXES, TEAM_AXES, DIAGONAL_PAIRS } from "@/lib/scatter-axes";
+import { openPlayer } from "./player-modal";
 
 export interface PlayerPoint {
   n: string;
@@ -80,6 +81,7 @@ export function ScatterDashboard({
       x: number;
       y: number;
       hit: boolean;
+      key: string | null;
     }[] = [];
     for (const p of src) {
       if (league !== "ALL" && p.lg !== league) continue;
@@ -90,7 +92,8 @@ export function ScatterDashboard({
       const name = p.n;
       const sub = isP ? `${(p as PlayerPoint).t} · ${LEAGUE_ABBR(p.lg)}` : LEAGUE_ABBR(p.lg);
       const hit = q.length > 0 && (name.toLowerCase().includes(q) || (isP && (p as PlayerPoint).t.toLowerCase().includes(q)));
-      out.push({ name, sub, lg: p.lg, x, y, hit });
+      const key = isP ? `${(p as PlayerPoint).t}::${name}` : null;
+      out.push({ name, sub, lg: p.lg, x, y, hit, key });
     }
     return out;
   }, [mode, players, teams, league, xAxis.key, yAxis.key, query]);
@@ -225,6 +228,7 @@ export function ScatterDashboard({
                   strokeWidth={on ? 1.5 : 0}
                   onMouseEnter={() => setHover(i)}
                   onMouseLeave={() => setHover((h) => (h === i ? null : h))}
+                  onClick={() => p.key && openPlayer(p.key)}
                   style={{ cursor: "pointer" }}
                 />
               );

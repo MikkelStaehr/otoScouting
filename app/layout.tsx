@@ -7,6 +7,7 @@ import {
 } from "@/lib/players";
 import { CommandPalette } from "@/components/command-palette";
 import { SettingsModal } from "@/components/settings-modal";
+import { PlayerModal } from "@/components/player-modal";
 import type { PlayerIndexRow } from "@/lib/types";
 import "./globals.css";
 
@@ -44,6 +45,7 @@ export default function RootLayout({
         {children}
         <CommandPalette index={index} />
         <SettingsModal lastUpdated={lastUpdated} />
+        <PlayerModal />
       </body>
     </html>
   );
