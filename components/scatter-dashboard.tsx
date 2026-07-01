@@ -245,24 +245,34 @@ export function ScatterDashboard({
               );
             })}
 
-            {/* hover tooltip */}
+            {/* hover tooltip — each field on its own line so nothing collides */}
             {hover != null && points[hover] && (() => {
               const p = points[hover]!;
               const x = scale.sx(p.x);
               const y = scale.sy(p.y);
-              const w = 172;
+              const w = 210;
+              const h = 74;
               const left = x > W - w - 20 ? x - w - 10 : x + 10;
-              const top = Math.min(Math.max(y - 30, M.top), H - M.bottom - 52);
+              const top = Math.min(Math.max(y - 30, M.top), H - M.bottom - h);
+              const row = (label: string, val: number, dy: number) => (
+                <g>
+                  <text x={left + 10} y={top + dy} className="fill-muted" style={{ fontSize: 10 }}>
+                    {label}
+                  </text>
+                  <text x={left + w - 10} y={top + dy} textAnchor="end" className="fill-volt"
+                    style={{ fontSize: 11, fontFamily: "monospace" }}>
+                    {val.toFixed(2)}
+                  </text>
+                </g>
+              );
               return (
                 <g pointerEvents="none">
-                  <rect x={left} y={top} width={w} height={48} rx={6}
+                  <rect x={left} y={top} width={w} height={h} rx={6}
                     fill="var(--color-ink-2)" stroke="var(--color-line-2)" />
-                  <text x={left + 10} y={top + 19} className="fill-fg" style={{ fontSize: 12, fontWeight: 600 }}>{p.name}</text>
-                  <text x={left + 10} y={top + 34} className="fill-muted" style={{ fontSize: 11 }}>{p.sub}</text>
-                  <text x={left + w - 10} y={top + 34} textAnchor="end" className="fill-volt"
-                    style={{ fontSize: 11, fontFamily: "monospace" }}>
-                    {p.x.toFixed(2)} / {p.y.toFixed(2)}
-                  </text>
+                  <text x={left + 10} y={top + 18} className="fill-fg" style={{ fontSize: 12, fontWeight: 600 }}>{p.name}</text>
+                  <text x={left + 10} y={top + 33} className="fill-muted" style={{ fontSize: 11 }}>{p.sub}</text>
+                  {row(xAxis.label, p.x, 52)}
+                  {row(yAxis.label, p.y, 67)}
                 </g>
               );
             })()}
