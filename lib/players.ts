@@ -20,6 +20,11 @@ interface SofaRow {
   xg: number | null;
   xa: number | null;
   goals_prevented: number | null;
+  // creation
+  key_passes: number | null;
+  big_chances_created: number | null;
+  successful_dribbles: number | null;
+  accurate_crosses: number | null;
   // defensive + build-up
   tackles: number | null;
   clearances: number | null;
@@ -42,6 +47,7 @@ function sofascoreRows(league: string, season: string): SofaRow[] {
     return getDb()
       .prepare(
         `SELECT player, team, player_id, xg, xa, goals_prevented,
+                key_passes, big_chances_created, successful_dribbles, accurate_crosses,
                 tackles, clearances, blocked_shots, ball_recovery,
                 poss_won_att_third, aerial_duels_won, duels_won_pct,
                 error_lead_to_shot, pass_accuracy_pct, total_passes,
@@ -158,6 +164,11 @@ function prepareRows(league: string, season: string): {
     p.xg = s?.xg ?? null;
     p.xa = s?.xa ?? null;
     p.gk_goals_prevented = s?.goals_prevented ?? null;
+    // Sofascore creation
+    p.key_passes = s?.key_passes ?? null;
+    p.big_chances_created = s?.big_chances_created ?? null;
+    p.dribbles = s?.successful_dribbles ?? null;
+    p.acc_crosses = s?.accurate_crosses ?? null;
     // Sofascore defensive + build-up
     p.tackles = s?.tackles ?? null;
     p.clearances = s?.clearances ?? null;

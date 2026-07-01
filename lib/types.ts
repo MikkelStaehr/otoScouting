@@ -41,6 +41,11 @@ export interface RawPlayer {
   xg: number | null;
   xa: number | null;
   gk_goals_prevented: number | null;
+  // Sofascore creation (also merged from sofascore_players)
+  key_passes: number | null;
+  big_chances_created: number | null;
+  dribbles: number | null;
+  acc_crosses: number | null;
   // Sofascore defensive + build-up (also merged from sofascore_players)
   tackles: number | null;
   clearances: number | null;
@@ -61,6 +66,7 @@ export interface RawPlayer {
 export type GroupKey =
   | "offensive"
   | "expected"
+  | "creation"
   | "efficiency"
   | "defensive"
   | "buildup"
@@ -93,6 +99,11 @@ export type MetricKey =
   | "xa"
   | "g_minus_xg"
   | "gk_goals_prevented"
+  // Sofascore creation (Opta-style)
+  | "key_passes"
+  | "big_chances_created"
+  | "dribbles"
+  | "acc_crosses"
   // Sofascore defensive + build-up (Opta-style)
   | "tackles"
   | "clearances"

@@ -4,6 +4,7 @@
   "groups": {
     "offensive": ["goals", "assists", "npg", "shots", "sot", "crosses", "fouled"],
     "expected": ["xg", "xa", "g_minus_xg"],
+    "creation": ["key_passes", "big_chances_created", "dribbles", "acc_crosses"],
     "efficiency": ["conv_pct", "sot_pct", "g_per_sot"],
     "defensive": ["tackles", "tackles_won", "interceptions", "clearances", "blocks", "ball_recovery", "poss_won_att_third", "aerial_won", "duels_won_pct", "errors"],
     "buildup": ["pass_pct", "passes", "final_third_passes", "long_balls", "long_ball_pct"],

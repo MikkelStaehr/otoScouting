@@ -17,7 +17,7 @@ type View = "overview" | "offensive" | "defensive" | "goalkeeping";
 const VIEW_ORDER: View[] = ["overview", "offensive", "defensive", "goalkeeping"];
 const VIEW_GROUPS: Record<View, GroupKey[]> = {
   overview: [],
-  offensive: ["offensive", "expected", "efficiency"],
+  offensive: ["offensive", "expected", "creation", "efficiency"],
   defensive: ["defensive", "buildup"],
   goalkeeping: ["goalkeeping"],
 };
