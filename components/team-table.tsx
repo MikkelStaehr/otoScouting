@@ -5,6 +5,7 @@ import type { EnrichedTeam, TeamMetricKey } from "@/lib/types";
 import { TEAM_METRICS, type TeamMetricDef } from "@/lib/team-metrics";
 import { teamLogoUrl } from "@/lib/team-logos";
 import { medianStyle } from "@/lib/heat";
+import { openTeam } from "./team-modal";
 
 const OFF = TEAM_METRICS.filter((m) => m.group === "off");
 const DEF = TEAM_METRICS.filter((m) => m.group === "def");
@@ -106,7 +107,13 @@ export function TeamTable({ teams }: { teams: EnrichedTeam[] }) {
                 <td className="sticky left-0 z-[1] whitespace-nowrap bg-ink px-3 py-2 font-medium text-fg">
                   <span className="mr-2 tnum text-[11px] text-faint">{i + 1}</span>
                   <TeamLogo team={t.team} />
-                  {t.team}
+                  <button
+                    onClick={() => openTeam(t.league, t.team)}
+                    title="Se forsvars-svagheder + fit-forslag"
+                    className="text-left transition-colors hover:text-volt"
+                  >
+                    {t.team}
+                  </button>
                 </td>
                 <td className="px-3 py-2 text-right tnum text-muted">{t.matches}</td>
                 <td className="px-3 py-2 text-right tnum font-semibold text-volt">{t.avg_rating?.toFixed(2) ?? "—"}</td>

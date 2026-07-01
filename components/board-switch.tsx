@@ -123,39 +123,28 @@ export function BoardSwitch({
 
         {/* League + season selector drives both boards. */}
         {leagues.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {leagues.map((lg) => {
-              const def =
-                teamOptions.find((o) => o.league === lg)?.season ?? "";
-              const active = !crossLeague && selectedTeam?.league === lg;
-              return (
-                <button
-                  key={lg}
-                  onClick={() => pick(lg, def)}
-                  className={`rounded-md border px-3 py-1 font-mono text-xs transition-colors ${
-                    active
-                      ? "border-volt/50 bg-volt/15 text-volt"
-                      : "border-line-2 text-faint hover:text-muted"
-                  }`}
-                >
-                  {leagueLabel(lg)}
-                </button>
-              );
-            })}
-            {/* Cross-league prospect view: pools all leagues, Elo-weighted. */}
-            <button
-              onClick={() => pick("ALL", "")}
-              title="Alle ligaer i én pulje — output vægtet efter ligastyrke (prospekt-finder)"
-              className={`rounded-md border px-3 py-1 font-mono text-xs transition-colors ${
-                crossLeague
-                  ? "border-volt/50 bg-volt/15 text-volt"
-                  : "border-dashed border-line-2 text-faint hover:text-muted"
-              }`}
-            >
-              ⚑ Alle ligaer
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex items-center gap-2 rounded-lg border border-line-2 bg-ink px-2.5 py-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-faint">Liga</span>
+              <select
+                value={crossLeague ? "ALL" : selectedTeam?.league ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "ALL") pick("ALL", "");
+                  else pick(v, teamOptions.find((o) => o.league === v)?.season ?? "");
+                }}
+                className="bg-transparent py-0.5 pr-1 text-sm text-fg outline-none"
+              >
+                {leagues.map((lg) => (
+                  <option key={lg} value={lg}>
+                    {leagueLabel(lg)}
+                  </option>
+                ))}
+                <option value="ALL">⚑ Alle ligaer</option>
+              </select>
+            </label>
             {seasonsForSelected.length > 1 && (
-              <span className="ml-1 flex items-center gap-1">
+              <span className="flex items-center gap-1">
                 {seasonsForSelected.map((o) => (
                   <button
                     key={o.season}
