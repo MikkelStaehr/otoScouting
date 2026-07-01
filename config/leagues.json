@@ -69,7 +69,7 @@
     "ENG-Championship": {
       "sofascore": 18,
       "sofascoreSeason": "25/26",
-      "fbref": "Championship",
+      "fbref": "EFL Championship",
       "fbrefSeason": "2025-2026",
       "seasonStart": "Aug",
       "seasonEnd": "May",
@@ -82,7 +82,7 @@
     "GER-2Bundesliga": {
       "sofascore": 44,
       "sofascoreSeason": "25/26",
-      "fbref": "2. Bundesliga",
+      "fbref": "2. Fußball-Bundesliga",
       "fbrefSeason": "2025-2026",
       "seasonStart": "Aug",
       "seasonEnd": "May",
@@ -107,7 +107,7 @@
     "AUT-Bundesliga": {
       "sofascore": 45,
       "sofascoreSeason": "25/26",
-      "fbref": "Austrian Bundesliga",
+      "fbref": "Austrian Football Bundesliga",
       "fbrefSeason": "2025-2026",
       "seasonStart": "Aug",
       "seasonEnd": "May",
