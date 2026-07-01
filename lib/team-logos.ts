@@ -1,10 +1,14 @@
 // Team crests from ESPN's open CDN (loads in-browser, not hotlink-protected).
 // Keyed by a normalised team name so FBref/Sofascore spelling variants resolve.
-// Covers Superliga + Allsvenskan + Eliteserien 2025/26. Where FBref and
-// Sofascore normalise differently (e.g. "molde" vs "molde fk"), both keys map
-// to the same id. Ids via ESPN's core API (swe.1 / nor.1 / den.1).
+//
+// Two sources merged: config/team-logos.json is auto-generated for all leagues
+// by pipeline/fetch_logos.py (run it after adding a league); OVERRIDES below are
+// hand-verified ids that take precedence (ESPN's season list misses a few
+// promoted/relegated Nordic clubs the generator can't match).
 
-const ESPN_ID: Record<string, number> = {
+import generated from "../config/team-logos.json";
+
+const OVERRIDES: Record<string, number> = {
   // Superliga (DEN)
   agf: 7853,
   brondby: 575,
@@ -66,6 +70,12 @@ const ESPN_ID: Record<string, number> = {
   vasteras: 22163,
   orgryte: 131552,
   "orgryte is": 131552,
+};
+
+// Generated (breadth, all leagues) with verified OVERRIDES winning on conflict.
+const ESPN_ID: Record<string, number> = {
+  ...(generated as Record<string, number>),
+  ...OVERRIDES,
 };
 
 function norm(team: string): string {
