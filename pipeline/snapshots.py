@@ -41,6 +41,12 @@ def archive(
     hist = f"{table}_history"
     conn.execute(f"CREATE TABLE IF NOT EXISTS {hist} AS SELECT * FROM {table} WHERE 0")
     hist_cols = [r[1] for r in conn.execute(f"PRAGMA table_info({hist})")]
+    # Reconcile schema drift: a history table created before a new column existed
+    # (e.g. `league` after multi-league) must gain it, or the INSERT below fails.
+    for c in (r[1] for r in conn.execute(f"PRAGMA table_info({table})")):
+        if c not in hist_cols:
+            conn.execute(f"ALTER TABLE {hist} ADD COLUMN {c}")
+            hist_cols.append(c)
     if "snapshot_id" not in hist_cols:
         conn.execute(f"ALTER TABLE {hist} ADD COLUMN snapshot_id INTEGER")
 

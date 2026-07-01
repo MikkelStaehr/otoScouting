@@ -53,13 +53,35 @@ korrekt for spiller-kvalitet. Andendivisioner sætter `"clubeloLevel": 2`
 - `tsc` rent; cross-league renderer stadig (verificeret på temp-port 3001).
 - Ingen re-fetch nødvendig — kun konfig-struktur ændret.
 
+## Batch-ingestion (`pipeline/ingest.py`)
+
+Driftsmodellen: databasen er aktivet, ingestion er et sjældent baggrundsjob
+(FBref månedligt — langsom, ~statisk bio; Sofascore oftere — hurtig, dynamisk xG).
+Så `ingest.py` er den ene kommando der fylder hele databasen:
+
+1. clubelo-koefficienter (hurtig)
+2. Sofascore for ALLE ligaer — ét process-kald = ét snapshot (holder Δ-form korrekt)
+3. FBref pr. liga (langsom) — hver liga isoleret, én fejl vælter ikke resten
+
+Flag: `--sofascore-only` (hurtig, ~1½ min), `--fbref-only`, `--league X`, `--no-coef`.
+Begge pipelines er gjort batch-robuste: `fetch_sofascore` fanger fejl pr. liga og
+rapporterer hvilke der fejlede; `fetch.py --no-archive` springer snapshot over i
+batch (Sofascore-kaldet laver det ene snapshot).
+
+**Bug fanget af testen:** `snapshots.archive()` fejlede med "no column named
+league" — history-tabellen blev lavet før multi-liga og manglede kolonnen. Fixet
+med skema-forlig (ALTER TABLE ADD COLUMN for kolonner history mangler). Verificeret:
+`ingest.py --sofascore-only` kører nu de 3 ligaer på 1,6 min, exit 0.
+
 ## Berørte filer
 
 ```text
 config/leagues.json          omstruktureret til fuldt registry
 pipeline/registry.py         NY — delt loader
 pipeline/update_coefficients.py  NY — clubelo → strength
-pipeline/fetch.py            læser registry; sæson defaulter derfra
-pipeline/fetch_sofascore.py  læser registry
+pipeline/ingest.py           NY — batch-ingestion (det månedlige job)
+pipeline/fetch.py            læser registry; sæson defaulter derfra; --no-archive
+pipeline/fetch_sofascore.py  læser registry; batch-robust (fejl pr. liga)
+pipeline/snapshots.py        skema-forlig i archive() (league-kolonne drift)
 lib/league-config.ts         strength fra ny struktur
 ```

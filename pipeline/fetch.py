@@ -201,6 +201,7 @@ def main() -> int:
     ap.add_argument("--league", default="DEN-Superliga")
     ap.add_argument("--season", default=None, help="FBref season (default: registry's current)")
     ap.add_argument("--db", default=str(ROOT / "scouting.db"))
+    ap.add_argument("--no-archive", action="store_true", help="skip the snapshot (batch use)")
     args = ap.parse_args()
 
     # Default the season to the registry's current one for this league.
@@ -263,7 +264,8 @@ def main() -> int:
     db_path = Path(args.db)
     conn = sqlite3.connect(db_path)
     try:
-        archive(conn, "players", "fbref", args.season)  # keep previous fetch
+        if not args.no_archive:
+            archive(conn, "players", "fbref", args.season)  # keep previous fetch
         conn.executescript(SCHEMA.read_text("utf-8"))
         # Replace only THIS league-season (clears players who transferred out).
         conn.execute(

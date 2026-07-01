@@ -160,27 +160,32 @@ def main() -> int:
         archive(conn, "sofascore_players", "sofascore", "refresh")  # one snapshot
 
         total_p = total_t = 0
+        failed: list[str] = []
         for lk in keys:
             cfg = LEAGUES[lk]
             # Register this league under its own key so ScraperFC can resolve it.
             sof.comps[lk] = {"SOFASCORE": cfg["sofascore"]}
             seasons = [args.season] if args.season else [cfg["sofascoreSeason"]]
-            for sof_season in seasons:
-                code, label = season_codes(sof_season)
-                print(f"\n[{lk} {sof_season}] players…", flush=True)
-                dfp = ss.scrape_player_league_stats(sof_season, lk, accumulation="total")
-                pcols, prows = build(dfp, COLUMNS, lk, code, label)
-                upsert(conn, "sofascore_players", lk, code, pcols, prows)
-                print(f"  {len(prows)} players", flush=True)
+            try:
+                for sof_season in seasons:
+                    code, label = season_codes(sof_season)
+                    print(f"\n[{lk} {sof_season}] players…", flush=True)
+                    dfp = ss.scrape_player_league_stats(sof_season, lk, accumulation="total")
+                    pcols, prows = build(dfp, COLUMNS, lk, code, label)
+                    upsert(conn, "sofascore_players", lk, code, pcols, prows)
+                    print(f"  {len(prows)} players", flush=True)
 
-                print(f"[{lk} {sof_season}] teams…", flush=True)
-                dft = ss.scrape_team_league_stats(sof_season, lk)
-                tcols, trows = build(dft, TEAM_COLUMNS, lk, code, label)
-                upsert(conn, "sofascore_teams", lk, code, tcols, trows)
-                print(f"  {len(trows)} teams", flush=True)
+                    print(f"[{lk} {sof_season}] teams…", flush=True)
+                    dft = ss.scrape_team_league_stats(sof_season, lk)
+                    tcols, trows = build(dft, TEAM_COLUMNS, lk, code, label)
+                    upsert(conn, "sofascore_teams", lk, code, tcols, trows)
+                    print(f"  {len(trows)} teams", flush=True)
 
-                total_p += len(prows)
-                total_t += len(trows)
+                    total_p += len(prows)
+                    total_t += len(trows)
+            except Exception as e:  # isolate a bad league so the batch survives
+                failed.append(lk)
+                print(f"  ! {lk} FAILED: {type(e).__name__}: {str(e)[:120]}", flush=True)
         conn.commit()
         summary = conn.execute(
             "SELECT league, season, COUNT(*) FROM sofascore_teams GROUP BY league, season ORDER BY league, season"
@@ -191,7 +196,9 @@ def main() -> int:
     print(f"\nWrote {total_p} player-rows + {total_t} team-rows -> {args.db}")
     for lg, se, n in summary:
         print(f"  {lg:<16} {se:<6} {n} teams")
-    return 0
+    if failed:
+        print(f"FAILED leagues ({len(failed)}): {', '.join(failed)}")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
