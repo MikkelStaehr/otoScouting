@@ -21,9 +21,9 @@ export interface TeamPoint {
 const LEAGUE_ABBR = (lg: string) => lg.slice(0, 3);
 
 // ── plot geometry (viewBox units; the svg scales to its container) ──
-const W = 1000;
+const W = 1200;
 const H = 600;
-const M = { top: 18, right: 22, bottom: 52, left: 62 };
+const M = { top: 18, right: 24, bottom: 52, left: 64 };
 
 function niceTicks(min: number, max: number, count = 6): number[] {
   if (min === max) return [min];
@@ -171,8 +171,9 @@ export function ScatterDashboard({
         </span>
       </div>
 
-      {/* plot */}
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ aspectRatio: `${W}/${H}` }}>
+      {/* plot — height-bounded so it never sprawls on wide screens */}
+      <div className="w-full" style={{ height: "min(64vh, 600px)", minHeight: 360 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="h-full w-full">
         {scale && (
           <>
             {/* gridlines + ticks */}
@@ -273,6 +274,7 @@ export function ScatterDashboard({
           </text>
         )}
       </svg>
+      </div>
     </div>
   );
 }

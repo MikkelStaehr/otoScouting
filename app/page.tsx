@@ -45,7 +45,7 @@ export default function DashboardPage() {
     <div className="min-h-dvh">
       <SiteHeader />
 
-      <main className="w-full px-3 py-5 sm:px-6 sm:py-8">
+      <main className="mx-auto w-full max-w-[1440px] px-3 py-5 sm:px-6 sm:py-8">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.25em] text-volt">
