@@ -42,11 +42,14 @@ function niceTicks(min: number, max: number, count = 6): number[] {
 export function ScatterDashboard({
   players,
   teams,
+  mode,
+  setMode,
 }: {
   players: PlayerPoint[];
   teams: TeamPoint[];
+  mode: "players" | "teams";
+  setMode: (m: "players" | "teams") => void;
 }) {
-  const [mode, setMode] = useState<"players" | "teams">("players");
   const [xKey, setXKey] = useState("goals");
   const [yKey, setYKey] = useState("xg");
   const [league, setLeague] = useState("ALL");

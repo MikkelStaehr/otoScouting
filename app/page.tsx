@@ -1,10 +1,8 @@
 import { SiteHeader } from "@/components/site-header";
-import {
-  ScatterDashboard,
-  type PlayerPoint,
-  type TeamPoint,
-} from "@/components/scatter-dashboard";
-import { TopLists, type DashPlayer } from "@/components/top-lists";
+import { DashboardView } from "@/components/dashboard-view";
+import type { PlayerPoint, TeamPoint } from "@/components/scatter-dashboard";
+import type { DashPlayer } from "@/components/top-lists";
+import type { DashTeam } from "@/components/team-lists";
 import { getCrossLeaguePlayers } from "@/lib/players";
 import { getAllTeams } from "@/lib/teams";
 import { PLAYER_AXES, TEAM_AXES } from "@/lib/scatter-axes";
@@ -14,6 +12,10 @@ const LIST_MIN = 540; // leaderboard qualification (minutes ~ 6 games)
 const DASH_METRICS = [
   "npg", "key_passes", "big_chances_created", "dribbles",
   "ball_recovery", "tackles", "aerial_won", "pass_pct",
+];
+const TEAM_DASH_METRICS = [
+  "goals", "xg", "big_chances", "possession", "pass_pct",
+  "goals_conceded", "shots_against", "clean_sheets",
 ];
 
 export const dynamic = "force-dynamic";
@@ -69,6 +71,18 @@ export default function DashboardPage() {
       };
     });
 
+  // Compact per-team data for the team leaderboards (per-match values).
+  const dashTeams: DashTeam[] = teams.map((t) => {
+    const value = t.value as unknown as Record<string, number | null>;
+    return {
+      n: t.team,
+      lg: t.league,
+      matches: t.matches,
+      rating: t.avg_rating ?? null,
+      m: Object.fromEntries(TEAM_DASH_METRICS.map((k) => [k, value[k] ?? null])),
+    };
+  });
+
   return (
     <div className="min-h-dvh">
       <SiteHeader />
@@ -94,24 +108,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <ScatterDashboard players={playerPoints} teams={teamPoints} />
-
-        <p className="mt-4 font-mono text-xs text-faint">
-          Sæt X og Y og se hvem der afviger fra mængden. Grøn stiplet = y=x
-          (over/under-performance, fx mål vs xG). De mest markante navngives
-          automatisk; søg for at fremhæve. Kun de små/producerende ligaer — det er
-          hele pointen.
-        </p>
-
-        <div className="mt-8">
-          <div className="mb-3 flex flex-wrap items-baseline gap-3 border-b border-line pb-2">
-            <h2 className="font-display text-lg font-bold text-fg">Top-lister</h2>
-            <span className="font-mono text-[11px] text-faint">
-              på tværs af alle ligaer · min. {LIST_MIN} min. · klik en kasse for hele listen
-            </span>
-          </div>
-          <TopLists players={dashPlayers} />
-        </div>
+        <DashboardView
+          playerPoints={playerPoints}
+          teamPoints={teamPoints}
+          dashPlayers={dashPlayers}
+          dashTeams={dashTeams}
+          listMin={LIST_MIN}
+        />
       </main>
     </div>
   );
