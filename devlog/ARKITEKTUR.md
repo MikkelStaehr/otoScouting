@@ -58,13 +58,21 @@ Superliga = 39, Allsvenskan = 40, Eliteserien = 20.
 
 ```text
 pipeline/
+  registry.py         delt loader: config/leagues.json (ÉN kilde til sandhed)
   fetch.py            FBref → players-tabellen
   fetch_sofascore.py  Sofascore → sofascore_players + sofascore_teams
+  update_coefficients.py  clubelo-Elo → ligastyrke-koefficient i registryet
   schema.sql          players-skema
   schema_sofascore.sql sofascore_players-skema
   schema_teams.sql    sofascore_teams-skema
   snapshots.py        arkiverer forrige hentning før overskrivning
 ```
+
+**Liga-registryet (`config/leagues.json`)** er den eneste kilde til per-liga
+metadata: Sofascore-id + sæson, FBref-navn + sæson + måneder, clubelo-landekode,
+ESPN-kode, og ligastyrke. Begge pipelines læser det via `registry.py`. At tilføje
+en liga = én blok i registryet + `python pipeline/update_coefficients.py` (fylder
+`strength`/`avgElo` fra clubelo) + fetch.
 
 ### Multi-liga / multi-sæson mønster (vigtigt)
 

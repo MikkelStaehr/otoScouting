@@ -11,13 +11,17 @@ const CONFIG_PATH = join(process.cwd(), "config", "leagues.json");
 export const ALL_LEAGUES = "ALL";
 
 interface LeaguesConfig {
-  strength: Record<string, number>;
+  leagues: Record<string, { strength?: number }>;
 }
 
+/** league key -> strength coefficient (1.0 = strongest), from the registry. */
 export function loadLeagueStrength(): Record<string, number> {
   try {
     const raw = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as LeaguesConfig;
-    return raw.strength ?? {};
+    const out: Record<string, number> = {};
+    for (const [k, v] of Object.entries(raw.leagues ?? {}))
+      if (typeof v.strength === "number") out[k] = v.strength;
+    return out;
   } catch {
     return {}; // no config → every league weighs 1.0
   }

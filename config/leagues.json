@@ -1,18 +1,46 @@
 {
-  "_comment": "League-strength coefficients for cross-league player comparison. Derived from average club Elo (clubelo.com, snapshot 2026-07-01), normalised so the strongest league = 1.0. Used to DISCOUNT per-90 output when ranking players across leagues: a weaker league's counting stats are multiplied by its coefficient before the shared percentile pool is computed. Rates (pass%, save%, conversion, g-xG, goals prevented) are NOT scaled — the coefficient would corrupt the unit. Single-league views are unaffected. Tunable: steepen the spread if you think the quality gap is larger than Elo implies (Elo differences are mild between these Nordic leagues).",
-  "strength": {
-    "DEN-Superliga": 1.0,
-    "NOR-Eliteserien": 0.961,
-    "SWE-Allsvenskan": 0.916
-  },
+  "_comment": "OtoScout league registry — the SINGLE source of truth for every league. Both Python pipelines read it (pipeline/registry.py) and the Node read layer reads `strength` (lib/league-config.ts). Adding a league = add one entry here, run pipeline/update_coefficients.py (fills strength/avgElo from clubelo), then fetch. Fields: sofascore = Sofascore unique-tournament id; sofascoreSeason = the season string ScraperFC wants (cross-year 'YY/YY', calendar 'YYYY'); fbref = the FBref competition name; fbrefSeason = soccerdata season ('YYYY-YYYY' cross-year, 'YYYY' calendar); seasonStart/seasonEnd = months for soccerdata's custom-league config (cross-year Aug–May, calendar Mar–Nov/Dec); clubelo = clubelo.com country code (for the strength coefficient); espn = ESPN league code (for crest ids); strength = league-strength coefficient (1.0 = strongest), avgElo = its source. strength/avgElo are maintained by pipeline/update_coefficients.py.",
   "eloSource": {
     "provider": "clubelo.com",
     "date": "2026-07-01",
-    "method": "mean club Elo, top division, normalised to strongest = 1.0",
-    "avgElo": {
-      "DEN-Superliga": 1492.6,
-      "NOR-Eliteserien": 1433.7,
-      "SWE-Allsvenskan": 1367.3
+    "method": "mean club Elo, top division, normalised to strongest = 1.0"
+  },
+  "leagues": {
+    "DEN-Superliga": {
+      "sofascore": 39,
+      "sofascoreSeason": "25/26",
+      "fbref": "Danish Superliga",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Jul",
+      "seasonEnd": "May",
+      "clubelo": "DEN",
+      "espn": "den.1",
+      "strength": 1.0,
+      "avgElo": 1492.6
+    },
+    "NOR-Eliteserien": {
+      "sofascore": 20,
+      "sofascoreSeason": "2026",
+      "fbref": "Eliteserien",
+      "fbrefSeason": "2026",
+      "seasonStart": "Mar",
+      "seasonEnd": "Dec",
+      "clubelo": "NOR",
+      "espn": "nor.1",
+      "strength": 0.961,
+      "avgElo": 1433.7
+    },
+    "SWE-Allsvenskan": {
+      "sofascore": 40,
+      "sofascoreSeason": "2026",
+      "fbref": "Allsvenskan",
+      "fbrefSeason": "2026",
+      "seasonStart": "Mar",
+      "seasonEnd": "Nov",
+      "clubelo": "SWE",
+      "espn": "swe.1",
+      "strength": 0.916,
+      "avgElo": 1367.3
     }
   }
 }

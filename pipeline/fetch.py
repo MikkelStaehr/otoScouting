@@ -22,30 +22,23 @@ from pathlib import Path
 import pandas as pd
 import soccerdata as sd
 
+from registry import load_leagues
 from snapshots import archive
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = Path(__file__).resolve().parent / "schema.sql"
 
-# Leagues that aren't in soccerdata's built-in set must be registered in its
-# user config. Danish Superliga isn't built in, so we ensure it here.
+LEAGUES = load_leagues()
+
+# soccerdata only ships the big leagues; the rest must be registered in its user
+# config. Build that registration straight from our registry (config/leagues.json).
 CUSTOM_LEAGUES = {
-    "DEN-Superliga": {
-        "FBref": "Danish Superliga",
-        "season_start": "Jul",
-        "season_end": "May",
-    },
-    # Nordic calendar-year leagues (spring–autumn → a single-year season code).
-    "SWE-Allsvenskan": {
-        "FBref": "Allsvenskan",
-        "season_start": "Mar",
-        "season_end": "Nov",
-    },
-    "NOR-Eliteserien": {
-        "FBref": "Eliteserien",
-        "season_start": "Mar",
-        "season_end": "Dec",
-    },
+    lk: {
+        "FBref": cfg["fbref"],
+        "season_start": cfg["seasonStart"],
+        "season_end": cfg["seasonEnd"],
+    }
+    for lk, cfg in LEAGUES.items()
 }
 
 
@@ -206,9 +199,13 @@ def main() -> int:
         pass
     ap = argparse.ArgumentParser()
     ap.add_argument("--league", default="DEN-Superliga")
-    ap.add_argument("--season", default="2025-2026")
+    ap.add_argument("--season", default=None, help="FBref season (default: registry's current)")
     ap.add_argument("--db", default=str(ROOT / "scouting.db"))
     args = ap.parse_args()
+
+    # Default the season to the registry's current one for this league.
+    if args.season is None:
+        args.season = LEAGUES[args.league]["fbrefSeason"]
 
     ensure_leagues_registered()
 

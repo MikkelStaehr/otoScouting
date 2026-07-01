@@ -20,22 +20,17 @@ import pandas as pd
 import ScraperFC as sfc
 import ScraperFC.sofascore as sof
 
+from registry import load_leagues
 from snapshots import archive
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = Path(__file__).resolve().parent / "schema_sofascore.sql"
 SCHEMA_TEAMS = Path(__file__).resolve().parent / "schema_teams.sql"
 
-# League key (also stored as `league`, matching FBref's naming) -> ScraperFC
-# comps name + Sofascore unique-tournament id + seasons to fetch. None of these
-# are in ScraperFC's built-in list; ids verified empirically.
-# Only the current season per league — old seasons accumulate naturally when a
-# season rolls over (the table is never dropped).
-LEAGUES: dict[str, dict] = {
-    "DEN-Superliga": {"comps": "Denmark Superliga", "sofascore": 39, "seasons": ["25/26"]},
-    "SWE-Allsvenskan": {"comps": "Allsvenskan", "sofascore": 40, "seasons": ["2026"]},
-    "NOR-Eliteserien": {"comps": "Eliteserien", "sofascore": 20, "seasons": ["2026"]},
-}
+# All per-league config lives in config/leagues.json (see pipeline/registry.py).
+# Only the current season per league is fetched — old seasons accumulate
+# naturally when a season rolls over (the table is never dropped).
+LEAGUES = load_leagues()
 
 # db column -> Sofascore dataframe column
 COLUMNS: dict[str, str] = {
@@ -167,17 +162,19 @@ def main() -> int:
         total_p = total_t = 0
         for lk in keys:
             cfg = LEAGUES[lk]
-            sof.comps[cfg["comps"]] = {"SOFASCORE": cfg["sofascore"]}
-            for sof_season in [args.season] if args.season else cfg["seasons"]:
+            # Register this league under its own key so ScraperFC can resolve it.
+            sof.comps[lk] = {"SOFASCORE": cfg["sofascore"]}
+            seasons = [args.season] if args.season else [cfg["sofascoreSeason"]]
+            for sof_season in seasons:
                 code, label = season_codes(sof_season)
                 print(f"\n[{lk} {sof_season}] players…", flush=True)
-                dfp = ss.scrape_player_league_stats(sof_season, cfg["comps"], accumulation="total")
+                dfp = ss.scrape_player_league_stats(sof_season, lk, accumulation="total")
                 pcols, prows = build(dfp, COLUMNS, lk, code, label)
                 upsert(conn, "sofascore_players", lk, code, pcols, prows)
                 print(f"  {len(prows)} players", flush=True)
 
                 print(f"[{lk} {sof_season}] teams…", flush=True)
-                dft = ss.scrape_team_league_stats(sof_season, cfg["comps"])
+                dft = ss.scrape_team_league_stats(sof_season, lk)
                 tcols, trows = build(dft, TEAM_COLUMNS, lk, code, label)
                 upsert(conn, "sofascore_teams", lk, code, tcols, trows)
                 print(f"  {len(trows)} teams", flush=True)
