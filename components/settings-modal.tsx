@@ -4,6 +4,24 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const OPEN_EVENT = "otoscout:open-settings";
 
+interface LeagueStatus {
+  league: string;
+  players: number;
+  teams: number;
+  xg: number;
+  strength: number | null;
+}
+interface StatusResponse {
+  leagues: LeagueStatus[];
+  totals: {
+    players: number;
+    teams: number;
+    leaguesWithPlayers: number;
+    leaguesWithTeams: number;
+    leaguesTotal: number;
+  };
+}
+
 /** Dispatch from anywhere (e.g. the header gear) to open Settings. */
 export function openSettings() {
   window.dispatchEvent(new Event(OPEN_EVENT));
@@ -17,6 +35,7 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
   const [pct, setPct] = useState(0);
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<StatusResponse | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const open = useCallback(() => {
@@ -45,6 +64,26 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
       window.removeEventListener("keydown", onKey);
     };
   }, [open, close, mounted]);
+
+  // Poll the data status while the panel is open, so an in-progress ingest is
+  // visible live (counts climb as FBref lands each league).
+  useEffect(() => {
+    if (!mounted) return;
+    let alive = true;
+    const load = () =>
+      fetch("/api/status")
+        .then((r) => r.json())
+        .then((d: StatusResponse & { error?: string }) => {
+          if (alive && !d.error) setStatus(d);
+        })
+        .catch(() => {});
+    load();
+    const id = setInterval(load, 4000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [mounted]);
 
   async function refresh() {
     setRunning(true);
@@ -128,9 +167,55 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
         </div>
 
         <div className="p-5">
+          {/* Live data status — which leagues are loaded, counts climb during ingest */}
+          {status && (
+            <div className="mb-5">
+              <div className="flex items-baseline justify-between">
+                <div className="text-sm font-medium text-fg">Data indlæst</div>
+                <div className="font-mono text-[11px] text-muted">
+                  <span className="text-fg">{status.totals.leaguesWithPlayers}</span>/
+                  {status.totals.leaguesTotal} ligaer m. spillere ·{" "}
+                  <span className="text-fg">{status.totals.players}</span> spillere
+                </div>
+              </div>
+              <div className="mt-2 max-h-56 divide-y divide-line/40 overflow-y-auto rounded-lg border border-line-2">
+                {status.leagues.map((l) => (
+                  <div
+                    key={l.league}
+                    className="flex items-center justify-between px-3 py-1.5 text-xs"
+                  >
+                    <span className={l.players > 0 ? "text-fg" : "text-faint"}>
+                      {l.league}
+                    </span>
+                    <span className="flex items-center gap-3 font-mono text-[11px]">
+                      <span
+                        className={l.players > 0 ? "text-fg" : "text-faint"}
+                        title="spillere (FBref)"
+                      >
+                        {l.players || "—"} sp
+                      </span>
+                      <span className="text-muted" title="hold (Sofascore)">
+                        {l.teams || "—"} h
+                      </span>
+                      <span
+                        className={l.xg > 0 ? "text-volt" : "text-faint"}
+                        title="xG-dækning"
+                      >
+                        {l.xg > 0 ? "xG" : "–"}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-1.5 font-mono text-[10px] text-faint">
+                Live · sp = spillere (FBref), h = hold (Sofascore) · gråt = mangler endnu
+              </p>
+            </div>
+          )}
+
           <div className="text-sm font-medium text-fg">Opdater data</div>
           <p className="mt-1 text-xs text-muted">
-            Henter Sofascore (xG / rich data) for alle 3 ligaer på ny — typisk
+            Henter Sofascore (xG / rich data) for alle ligaer på ny — typisk
             ~30&nbsp;sek. Forrige hentning gemmes som snapshot, så du har et
             sammenligningsgrundlag.
           </p>

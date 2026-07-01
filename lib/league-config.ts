@@ -14,6 +14,16 @@ interface LeaguesConfig {
   leagues: Record<string, { strength?: number }>;
 }
 
+/** The full registry (all league keys, in order) — for the data-status view. */
+export function loadLeagues(): Record<string, { strength?: number }> {
+  try {
+    const raw = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as LeaguesConfig;
+    return raw.leagues ?? {};
+  } catch {
+    return {};
+  }
+}
+
 /** league key -> strength coefficient (1.0 = strongest), from the registry. */
 export function loadLeagueStrength(): Record<string, number> {
   try {
