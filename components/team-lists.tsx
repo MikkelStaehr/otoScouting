@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { teamLogoUrl } from "@/lib/team-logos";
+import { openTeam } from "./team-modal";
 
 export interface DashTeam {
   n: string;
@@ -136,14 +137,20 @@ function FullListModal({ spec, rows, onClose }: { spec: TSpec; rows: { t: DashTe
 
 function Row({ i, t, v, big }: { i: number; t: DashTeam; v: string; big?: boolean }) {
   return (
-    <li className={`flex items-center gap-2 rounded-md px-1.5 text-sm ${big ? "py-1.5" : "py-1"}`}>
-      <span className="tnum w-6 shrink-0 text-right font-mono text-[11px] text-faint">{i + 1}</span>
-      <Crest team={t.n} />
-      <span className="min-w-0 flex-1 truncate">
-        <span className="text-fg">{t.n}</span>
-        <span className="ml-1.5 font-mono text-[10px] text-faint">{LEAGUE_ABBR(t.lg)}</span>
-      </span>
-      <span className="tnum shrink-0 font-mono text-xs font-semibold text-volt">{v}</span>
+    <li>
+      <button
+        onClick={() => openTeam(t.lg, t.n)}
+        title="Se forsvars-svagheder + fit-forslag"
+        className={`flex w-full items-center gap-2 rounded-md px-1.5 text-left text-sm transition-colors hover:bg-panel/60 ${big ? "py-1.5" : "py-1"}`}
+      >
+        <span className="tnum w-6 shrink-0 text-right font-mono text-[11px] text-faint">{i + 1}</span>
+        <Crest team={t.n} />
+        <span className="min-w-0 flex-1 truncate">
+          <span className="text-fg">{t.n}</span>
+          <span className="ml-1.5 font-mono text-[10px] text-faint">{LEAGUE_ABBR(t.lg)}</span>
+        </span>
+        <span className="tnum shrink-0 font-mono text-xs font-semibold text-volt">{v}</span>
+      </button>
     </li>
   );
 }

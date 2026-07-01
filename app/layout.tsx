@@ -8,6 +8,7 @@ import {
 import { CommandPalette } from "@/components/command-palette";
 import { SettingsModal } from "@/components/settings-modal";
 import { PlayerModal } from "@/components/player-modal";
+import { TeamModal } from "@/components/team-modal";
 import type { PlayerIndexRow } from "@/lib/types";
 import "./globals.css";
 
@@ -46,6 +47,7 @@ export default function RootLayout({
         <CommandPalette index={index} />
         <SettingsModal lastUpdated={lastUpdated} />
         <PlayerModal />
+        <TeamModal />
       </body>
     </html>
   );
