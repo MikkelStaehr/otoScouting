@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { teamLogoUrl } from "@/lib/team-logos";
 import { flagUrl } from "@/lib/flags";
 import { openPlayer } from "./player-modal";
+import { PitchHeatmap } from "./pitch-heatmap";
 
 const OPEN_EVENT = "otoscout:open-team";
 
@@ -39,6 +40,7 @@ interface TeamReport {
   ratingRank: number | null; teamsInLeague: number;
   metrics: MetricReport[]; strengths: MetricReport[]; weaknesses: MetricReport[];
   squad: SquadGroup[];
+  heatmap: { w: number; h: number; grid: number[] } | null;
   zones: ZoneCover[];
   goalsAgainst: number | null; bigChancesAgainst: number | null;
 }
@@ -213,6 +215,18 @@ export function TeamModal() {
               {/* metrics + zones */}
               <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12">
                 <div className="lg:col-span-7">
+                  {detail.heatmap && (
+                    <div className="mb-5 max-w-md">
+                      <div className="mb-1.5 flex items-baseline justify-between">
+                        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Holdets heatmap</span>
+                        <span className="font-mono text-[10px] text-faint">hvor holdet opererer</span>
+                      </div>
+                      <PitchHeatmap hm={detail.heatmap} id="team-hm" />
+                      <p className="mt-1.5 font-mono text-[10px] text-faint">
+                        markspillernes sæson-heatmaps lagt sammen, vægtet efter spilletid
+                      </p>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                     <MetricGroup title="Offensive nøgletal" metrics={off} of={detail.teamsInLeague} />
                     <MetricGroup title="Defensive nøgletal" metrics={def} of={detail.teamsInLeague} />

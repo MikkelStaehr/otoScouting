@@ -7,6 +7,7 @@
 import { getTeams, getTeamLeagueSeasons } from "./teams.ts";
 import { getTeamWeakness, type ZoneCover } from "./weakness.ts";
 import { getCrossLeaguePlayers } from "./players.ts";
+import { getTeamHeatmap, type Heatmap } from "./heatmap.ts";
 import { normTeam } from "./merge.ts";
 import { TEAM_METRICS } from "./team-metrics.ts";
 import type { EnrichedTeam, EnrichedPlayer, MetricKey } from "./types.ts";
@@ -57,6 +58,7 @@ export interface TeamReport {
   strengths: TeamMetricReport[]; // top percentile metrics
   weaknesses: TeamMetricReport[]; // bottom percentile metrics
   squad: SquadGroup[]; // players by position with position-appropriate stats
+  heatmap: Heatmap | null; // minute-weighted composite of the outfield squad
   // defensive-zone weakness + recruitment fits (existing engine)
   zones: ZoneCover[];
   goalsAgainst: number | null;
@@ -169,6 +171,18 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
   // Weakness/fit engine keys off the FBref player-team spelling.
   const weakness = getTeamWeakness(league, playerTeam ?? team);
 
+  // Minute-weighted composite heatmap from the outfield squad's season grids.
+  const teamPlayers = playerTeam
+    ? players.filter((p) => p.league === league && p.team === playerTeam)
+    : [];
+  const heatmap = teamPlayers.length
+    ? getTeamHeatmap(
+        league,
+        teamPlayers[0]!.season,
+        teamPlayers.map((p) => ({ id: p.sofascore_id, minutes: p.minutes, isGk: p.gk_saves != null })),
+      )
+    : null;
+
   // Find the league-season this team plays in (latest first) and its siblings,
   // so we can rank each metric within the league.
   const nt = normTeam(team);
@@ -250,6 +264,7 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
     strengths,
     weaknesses,
     squad,
+    heatmap,
     zones: weakness?.zones ?? [],
     goalsAgainst: me?.value["goals_conceded"] ?? weakness?.goalsAgainst ?? null,
     bigChancesAgainst: me?.value["big_chances_against"] ?? weakness?.bigChancesAgainst ?? null,
