@@ -126,12 +126,17 @@ export function enrichPlayers(
     return wSum > 0 ? score / wSum : 0;
   };
 
+  // Round on the way out — the client-facing payload is mostly these floats, and
+  // full precision is wasted (per-90 shows 2 decimals, percentiles are rounded).
+  const r3 = (v: number | null) => (v == null ? null : Math.round(v * 1000) / 1000);
+  const r1 = (v: number) => Math.round(v * 10) / 10;
+
   return players.map((p) => {
     const keeper = isKeeper(p);
     const per90Map = {} as Record<MetricKey, number | null>;
     const percentile = {} as Record<MetricKey, number | null>;
     for (const m of metrics) {
-      per90Map[m] = valueOf(p, m); // raw display value (never league-adjusted)
+      per90Map[m] = r3(valueOf(p, m)); // raw display value (never league-adjusted)
       // Only rank a player on metrics of their own class: keepers on GK stats,
       // outfielders on the rest. Otherwise a keeper's 0 goals would percentile
       // against outfielders (tie-inflated) and read as a real ranking.
@@ -141,7 +146,7 @@ export function enrichPlayers(
         percentile[m] = null;
       } else {
         const pct = percentileOf(sorted[m], rv);
-        percentile[m] = invert.has(m) ? 100 - pct : pct;
+        percentile[m] = r1(invert.has(m) ? 100 - pct : pct);
       }
     }
 

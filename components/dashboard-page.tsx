@@ -1,67 +1,11 @@
 import { SiteHeader } from "@/components/site-header";
 import { DashboardView } from "@/components/dashboard-view";
-import type { PlayerPoint, TeamPoint } from "@/components/scatter-dashboard";
-import type { DashPlayer } from "@/components/top-lists";
-import type { DashTeam } from "@/components/team-lists";
-import { getCrossLeaguePlayers } from "@/lib/players";
-import { getAllTeams } from "@/lib/teams";
-import { PLAYER_AXES, TEAM_AXES } from "@/lib/scatter-axes";
-
-const LIST_MIN = 540; // leaderboard qualification (minutes ~ 6 games)
-const DASH_METRICS = [
-  "npg", "key_passes", "big_chances_created", "dribbles",
-  "ball_recovery", "tackles", "aerial_won", "pass_pct",
-];
-const TEAM_DASH_METRICS = [
-  "goals", "xg", "big_chances", "possession", "pass_pct",
-  "goals_conceded", "shots_against", "clean_sheets",
-];
+import { getDashboardData, LIST_MIN } from "@/lib/dashboard";
 
 /** Shared body for both dashboard routes (/ = players, /hold = teams). */
 export function DashboardPage({ mode }: { mode: "players" | "teams" }) {
-  const { players } = getCrossLeaguePlayers();
-  const teams = getAllTeams();
-
-  const playerPoints: PlayerPoint[] = players
-    .filter((p) => (p.minutes ?? 0) >= 450)
-    .map((p) => {
-      const per90 = p.per90 as unknown as Record<string, number | null>;
-      return {
-        n: p.player, t: p.team, lg: p.league, age: p.age ?? null, min: p.minutes,
-        out: p.outputScore == null ? null : Math.round(p.outputScore),
-        v: Object.fromEntries(PLAYER_AXES.map((a) => [a.key, per90[a.key] ?? null])),
-      };
-    });
-
-  const teamPoints: TeamPoint[] = teams.map((t) => {
-    const value = t.value as unknown as Record<string, number | null>;
-    return {
-      n: t.team, lg: t.league,
-      v: Object.fromEntries(TEAM_AXES.map((a) => [a.key, value[a.key] ?? null])),
-    };
-  });
-
-  const dashPlayers: DashPlayer[] = players
-    .filter((p) => (p.minutes ?? 0) >= LIST_MIN)
-    .map((p) => {
-      const per90 = p.per90 as unknown as Record<string, number | null>;
-      return {
-        n: p.player, t: p.team, lg: p.league, age: p.age ?? null, min: p.minutes,
-        out: p.outputScore == null ? null : Math.round(p.outputScore),
-        xg: p.xg, goals: p.goals, gp: p.gk_goals_prevented, isGk: p.gk_saves != null,
-        m: Object.fromEntries(DASH_METRICS.map((k) => [k, per90[k] ?? null])),
-      };
-    });
-
-  const dashTeams: DashTeam[] = teams.map((t) => {
-    const value = t.value as unknown as Record<string, number | null>;
-    return {
-      n: t.team, lg: t.league, matches: t.matches, rating: t.avg_rating ?? null,
-      m: Object.fromEntries(TEAM_DASH_METRICS.map((k) => [k, value[k] ?? null])),
-    };
-  });
-
-  const leagueCount = new Set(teams.map((t) => t.league)).size;
+  const { playerPoints, teamPoints, dashPlayers, dashTeams, leagueCount } =
+    getDashboardData();
   const isPlayers = mode === "players";
 
   return (
