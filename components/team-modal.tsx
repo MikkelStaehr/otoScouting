@@ -255,7 +255,7 @@ export function TeamModal() {
                             onPick={openPlayer}
                           />
                           <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[10px] text-faint">
-                            <span>hver prik = spillers gns. position, størrelse = spilletid</span>
+                            <span>typisk 11'er (mest spilletid) · prik = gns. position</span>
                             <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(77,124,90,0.95)" }} /> høj OUT</span>
                             <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(180,105,74,0.95)" }} /> lav OUT</span>
                           </p>

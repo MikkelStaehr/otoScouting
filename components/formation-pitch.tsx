@@ -40,7 +40,8 @@ export function FormationPitch({
 }) {
   const W = 320;
   const H = 208;
-  const shown = dots.slice(0, 14);
+  // The typical XI — the 11 most-used players (dots are pre-sorted by minutes).
+  const shown = dots.slice(0, 11);
   const maxMin = Math.max(...shown.map((d) => d.minutes), 1);
 
   return (
