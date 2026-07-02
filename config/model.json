@@ -1,5 +1,5 @@
 {
-  "_comment": "OtoScout model — tunable live (read per request, no rebuild). Metrics are grouped into offensive/defensive/goalkeeping. Percentiles are computed within a POOL: outfield stats vs qualified outfielders, GK stats vs qualified keepers. 'rates' are already ratios (not converted to per-90). 'invert' = lower-is-better, so their percentile is flipped (green = good). outputScore is a weighted average of per-90 percentiles (outfield) — keepers naturally score low on it.",
+  "_comment": "OtoScout model — tunable live (read per request, no rebuild). Metrics are grouped into offensive/defensive/goalkeeping. Percentiles are computed within a POOL: outfield stats vs qualified outfielders, GK stats vs qualified keepers. 'rates' are already ratios (not converted to per-90). 'invert' = lower-is-better, so their percentile is flipped (green = good). OUT is role-relative: outfielders use outputScore over a broad offensive+defensive basket (anti-correlated → composite regresses to middle); keepers use keeperScore over 4 correlated GK stats (top keepers clear ~90 on all → higher tail). So keeper OUT and outfield OUT are NOT comparable — the cross-role output leaderboards are outfield-only; keepers have their own list.",
   "minMinutes": 450,
   "groups": {
     "offensive": ["goals", "assists", "npg", "shots", "sot", "crosses", "fouled"],

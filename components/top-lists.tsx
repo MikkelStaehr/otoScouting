@@ -50,8 +50,8 @@ const pct = (v: number) => `${v.toFixed(0)}%`;
 // One leaderboard per attacking / creative / defensive / build-up dimension.
 const SPECS: Spec[] = [
   { key: "danger", title: "Mest målfarlige", sub: "mål u. straffe /90", pick: per("npg"), fmt: f2 },
-  { key: "out", title: "Bedste output", sub: "OUT · ligastyrke-justeret", pick: (p) => p.out, fmt: (v) => String(Math.round(v)) },
-  { key: "u21", title: "Ones to watch · U21", sub: "unge der leverer (OUT)", pick: (p) => p.out, fmt: (v) => String(Math.round(v)), filter: (p) => p.age != null && p.age <= 21, hint: (p) => `${p.age} år` },
+  { key: "out", title: "Bedste output", sub: "OUT · markspillere · ligastyrke-justeret", pick: (p) => p.out, fmt: (v) => String(Math.round(v)), filter: (p) => !p.isGk },
+  { key: "u21", title: "Ones to watch · U21", sub: "unge markspillere der leverer (OUT)", pick: (p) => p.out, fmt: (v) => String(Math.round(v)), filter: (p) => !p.isGk && p.age != null && p.age <= 21, hint: (p) => `${p.age} år` },
   { key: "chances", title: "Chance-skaberne", sub: "chances created /90", pick: per("key_passes"), fmt: f2 },
   { key: "bigchances", title: "Store chancer skabt", sub: "big chances created /90", pick: per("big_chances_created"), fmt: f2 },
   { key: "dribbles", title: "Driblerne", sub: "vellykkede driblinger /90", pick: per("dribbles"), fmt: f2 },
