@@ -110,7 +110,12 @@ export function WatchlistButton({ target, size = "sm" }: { target: WatchTarget; 
     if (!open) return;
     const place = () => {
       const r = btnRef.current?.getBoundingClientRect();
-      if (r) setPos({ top: r.bottom + 6, left: Math.max(8, Math.min(r.right - 224, window.innerWidth - 232)) });
+      if (!r) return;
+      // Prefer opening rightward from the star (sits over content, stays legible);
+      // clamp so it never runs off-screen. Flip up if it'd overflow the bottom.
+      const left = Math.max(8, Math.min(r.left, window.innerWidth - 232));
+      const top = r.bottom + 6 + 240 > window.innerHeight ? r.top - 6 - 240 : r.bottom + 6;
+      setPos({ top: Math.max(8, top), left });
     };
     place();
     const onDown = (e: MouseEvent) => {
