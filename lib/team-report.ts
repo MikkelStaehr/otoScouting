@@ -405,7 +405,15 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
     }
     for (const arr of pool.values()) arr.sort((a, b) => (b.out ?? -1) - (a.out ?? -1));
 
-    const weakest = roleMakeup.filter((r) => r.bestOut != null).sort((a, b) => a.bestOut! - b.bestOut!).slice(0, 4);
+    // Weakest-covered role PER LINE (so upgrade targets span the pitch, not just
+    // whichever area is worst overall).
+    const perBucket = new Map<string, RoleSlot>();
+    for (const s of roleMakeup) {
+      if (s.bestOut == null) continue;
+      const cur = perBucket.get(s.bucket);
+      if (!cur || s.bestOut < cur.bestOut!) perBucket.set(s.bucket, s);
+    }
+    const weakest = [...perBucket.values()].sort((a, b) => a.bestOut! - b.bestOut!);
     for (const slot of weakest) {
       const cands = (pool.get(slot.role) ?? [])
         .filter((c) => normTeam(c.t) !== nt && (c.out ?? -1) > (slot.bestOut ?? -1))

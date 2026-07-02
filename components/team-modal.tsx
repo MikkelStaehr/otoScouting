@@ -60,9 +60,6 @@ interface TeamReport {
   goalsAgainst: number | null; bigChancesAgainst: number | null;
 }
 
-const strColor = (s: number | null) =>
-  s == null ? "var(--color-faint)" : s >= 62 ? "rgba(77,124,90,1)" : s >= 48 ? "var(--color-muted)" : "rgba(180,105,74,1)";
-
 const pctColor = (p: number | null) =>
   p == null ? "rgba(120,120,120,0.4)" : p >= 50 ? "rgba(77,124,90,0.9)" : "rgba(180,105,74,0.9)";
 
@@ -137,9 +134,6 @@ export function TeamModal() {
   }, [mounted]);
 
   if (!mounted) return null;
-  const weakest = detail
-    ? [...detail.zones].filter((z) => z.strength != null).sort((a, b) => a.strength! - b.strength!)[0]
-    : null;
   const off = detail?.metrics.filter((m) => m.group === "off") ?? [];
   const def = detail?.metrics.filter((m) => m.group === "def") ?? [];
 
@@ -251,16 +245,18 @@ export function TeamModal() {
                 </div>
               )}
 
-              {/* metrics + zones */}
-              <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12">
+              {/* metrics (left) + formation & zone (right) */}
+              <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-12">
                 <div className="lg:col-span-7">
                   <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                     <MetricGroup title="Offensive nøgletal" metrics={off} of={detail.teamsInLeague} />
                     <MetricGroup title="Defensive nøgletal" metrics={def} of={detail.teamsInLeague} />
                   </div>
+                </div>
 
+                <div className="lg:col-span-5">
                   {detail.heatmap && (
-                    <div className="mt-6 max-w-md">
+                    <div>
                       {/* formation + players over the heatmap */}
                       {detail.positions.length > 0 ? (
                         <>
@@ -319,21 +315,6 @@ export function TeamModal() {
                       </div>
                     </div>
                   )}
-                </div>
-
-                <div className="lg:col-span-5">
-                  <div className="mb-2 flex items-baseline justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Forsvarszoner</span>
-                    <span className="font-mono text-[10px] text-faint">mest brugte back pr. side</span>
-                  </div>
-                  <div className="space-y-2.5">
-                    {detail.zones.map((z) => (
-                      <Zone key={z.side} z={z} weakest={weakest?.side === z.side} />
-                    ))}
-                  </div>
-                  <p className="mt-2 font-mono text-[10px] leading-relaxed text-faint">
-                    Zonen dækkes af holdets mest brugte back i den side; tal = defensiv percentil.
-                  </p>
                 </div>
               </div>
             </>
@@ -536,51 +517,6 @@ function MetricRow({ m, of }: { m: MetricReport; of: number }) {
   );
 }
 
-function Zone({ z, weakest }: { z: ZoneCover; weakest: boolean }) {
-  return (
-    <div className={`rounded-xl border p-3 ${weakest ? "border-[rgba(180,105,74,0.5)] bg-[rgba(180,105,74,0.06)]" : "border-line bg-panel/30"}`}>
-      <div className="mb-1 flex items-baseline justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-faint">{z.zone}</span>
-        {weakest && <span className="font-mono text-[9px] uppercase tracking-wider text-[rgba(180,105,74,1)]">svagest</span>}
-      </div>
-      {z.player === "—" ? (
-        <div className="py-3 text-center font-mono text-xs text-faint">ingen data</div>
-      ) : (
-        <>
-          <button
-            onClick={() => z.key && openPlayer(z.key)}
-            className="flex w-full items-baseline justify-between text-left"
-          >
-            <span className="truncate text-sm font-medium text-fg hover:text-volt">{z.player}</span>
-            <span className="tnum ml-2 shrink-0 font-mono text-lg font-bold" style={{ color: strColor(z.strength) }}>
-              {z.strength ?? "—"}
-            </span>
-          </button>
-          <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
-            {z.metrics.map((m) => (
-              <div key={m.label} className="flex items-center gap-1.5">
-                <span className="w-16 shrink-0 truncate font-mono text-[9px] text-muted">{m.label}</span>
-                <div className="h-1 flex-1 overflow-hidden rounded-full bg-ink-2">
-                  {m.pct != null && (
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${m.pct}%`, backgroundColor: m.pct >= 50 ? "rgba(77,124,90,0.85)" : "rgba(180,105,74,0.85)" }}
-                    />
-                  )}
-                </div>
-                <span className="tnum w-5 shrink-0 text-right font-mono text-[9px] text-faint">
-                  {m.pct != null ? Math.round(m.pct) : "—"}
-                </span>
-              </div>
-            ))}
-          </div>
-
-        </>
-      )}
-    </div>
-  );
-}
-
 const cellBg = (pct: number | null): React.CSSProperties | undefined => {
   if (pct == null) return undefined;
   const a = (Math.abs(pct - 50) / 50) * 0.22;
@@ -593,7 +529,13 @@ function SquadTable({ g }: { g: SquadGroup }) {
   const hasOut = g.rows.some((r) => r.out != null);
   return (
     <div className="overflow-x-auto rounded-xl border border-line">
-      <table className="w-full border-collapse text-sm">
+      <table className="w-full table-fixed border-collapse text-sm">
+        {/* fixed leading columns so player / rolle / kampe line up across the line tables */}
+        <colgroup>
+          <col style={{ width: 210 }} />
+          <col style={{ width: 150 }} />
+          <col style={{ width: 60 }} />
+        </colgroup>
         <thead>
           <tr className="border-b border-line bg-ink-2">
             <th className="px-3 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.15em] text-volt">
@@ -620,13 +562,13 @@ function SquadTable({ g }: { g: SquadGroup }) {
             const perMatch = r.mp > 0 ? Math.round(r.minutes / r.mp) : null;
             return (
               <tr key={r.key} className="border-t border-line/50 transition-colors hover:bg-panel/50">
-                <td className="whitespace-nowrap px-3 py-1.5">
+                <td className="px-3 py-1.5">
                   <div className="flex items-center gap-2">
                     <Flag nat={r.nation} />
-                    <button onClick={() => openPlayer(r.key)} className="text-left font-medium text-fg transition-colors hover:text-volt">
+                    <button onClick={() => openPlayer(r.key)} className="min-w-0 flex-1 truncate text-left font-medium text-fg transition-colors hover:text-volt">
                       {r.player}
                     </button>
-                    {r.pos && <span className="font-mono text-[9px] text-faint">{r.pos}</span>}
+                    {r.pos && <span className="shrink-0 font-mono text-[9px] text-faint">{r.pos}</span>}
                   </div>
                 </td>
                 <td className="whitespace-nowrap px-2 py-1.5">
