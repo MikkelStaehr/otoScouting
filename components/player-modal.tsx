@@ -22,7 +22,7 @@ interface SimilarPlayer {
   age: number | null; pos: string | null; sim: number;
 }
 interface HeatmapData { w: number; h: number; grid: number[]; nPoints: number; matches: number | null }
-interface RoleFit { role: string; conf: number }
+interface RoleFit { role: string; conf: number; why: string[] }
 interface RoleResult { bucket: string; primary: RoleFit | null; secondary: RoleFit | null }
 interface PlayerDetail {
   key: string; sid: number | null; player: string; team: string; league: string;
@@ -160,6 +160,11 @@ export function PlayerModal() {
                   >
                     {detail.role.secondary.role}
                     <span className="ml-1 text-faint">{detail.role.secondary.conf}%</span>
+                  </span>
+                )}
+                {detail.role.primary.why.length > 0 && (
+                  <span className="w-full font-mono text-[10px] leading-relaxed text-faint">
+                    hvorfor: {detail.role.primary.why.join(" · ")}
                   </span>
                 )}
               </div>

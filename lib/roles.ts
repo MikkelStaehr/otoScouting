@@ -2,13 +2,17 @@
 // we assign the role a player ACTUALLY played (descriptive) from WHERE he operates
 // — heatmap centroids incl. the attacking vs. defending shift — and WHAT he does
 // there (league-adjusted percentiles). Output is a fuzzy best-fit, not a verdict:
-// "this player behaves most like an X". Primary + secondary with a 0-100 score.
+// "this player behaves most like an X". Primary + secondary with a 0-100 score,
+// each with a `why` — the top signals that drove the classification.
 
 import type { SquadCentroid } from "./heatmap.ts";
+import { METRIC_NAME } from "./metrics.ts";
+import type { MetricKey } from "./types.ts";
 
 export interface RoleFit {
   role: string;
   conf: number; // 0-100 match score
+  why: string[]; // top contributing signals, human-readable
 }
 export interface RoleResult {
   bucket: string; // GK / CB / BACK / MID / WIDE / STRIKER / ?
@@ -17,62 +21,79 @@ export interface RoleResult {
 }
 
 const clamp = (x: number) => Math.max(0, Math.min(100, x));
-// Map a raw positional delta into 0-100 over an expected span.
 const span = (v: number, lo: number, hi: number) => clamp(((v - lo) / (hi - lo)) * 100);
 
-// The signals a role scorer reads: percentile accessor P + positioning terms.
+// Positioning terms + their Danish phrases (hi = term high, lo = inverted/low).
+type PosKey = "fs" | "inward" | "wide" | "deep" | "advanced" | "range" | "gkAdv" | "drop";
+const POS_PHRASE: Record<PosKey, { hi: string; lo: string }> = {
+  fs: { hi: "rykker højt op i angreb", lo: "bliver hjemme defensivt" },
+  inward: { hi: "søger ind i banen", lo: "holder bredden" },
+  wide: { hi: "bred position", lo: "central position" },
+  deep: { hi: "dyb position", lo: "fremskudt position" },
+  advanced: { hi: "fremskudt position", lo: "dyb position" },
+  range: { hi: "dækker meget bane", lo: "" },
+  gkAdv: { hi: "høj gns. position (kommer ud)", lo: "" },
+  drop: { hi: "dropper dybt", lo: "" },
+};
+
 interface Sig {
-  P: (k: string) => number; // percentile 0-100 (missing → 50, neutral)
-  cx: number; cy: number; cxA: number; cyA: number;
-  wide: number; // how wide (0-100)
-  fs: number; // forward shift att vs def (0-100) — holding ↔ wing-back
-  inward: number; // moves toward centre in possession (0-100) — inverted
-  range: number; // depth coverage att-def (0-100) — box-to-box
-  deep: number; // how deep for a midfielder (0-100)
-  advanced: number; // how advanced (0-100)
-  gkAdv: number; // keeper sweeping high (0-100)
+  P: (k: string) => number;
+  pos: Record<PosKey, number>;
 }
 
-type Scorer = (s: Sig) => number;
+// A term is a percentile metric or a positioning term, with a weight; `inv` flips it.
+type Term =
+  | { p: MetricKey; w: number; inv?: boolean }
+  | { pos: PosKey; w: number; inv?: boolean };
 
-const ROLES: Record<string, { role: string; score: Scorer }[]> = {
+const termValue = (t: Term, s: Sig): number => {
+  const raw = "p" in t ? s.P(t.p) : s.pos[t.pos];
+  return t.inv ? 100 - raw : raw;
+};
+const termLabel = (t: Term, s: Sig): string => {
+  if ("p" in t) {
+    const pctl = Math.round(s.P(t.p));
+    return t.inv ? `lav ${METRIC_NAME[t.p]} (${pctl}p)` : `${METRIC_NAME[t.p]} (${pctl}p)`;
+  }
+  return t.inv ? POS_PHRASE[t.pos].lo : POS_PHRASE[t.pos].hi;
+};
+
+const ROLES: Record<string, { role: string; terms: Term[] }[]> = {
   GK: [
-    { role: "Shot-Stopper", score: (s) => 0.55 * s.P("gk_save_pct") + 0.45 * s.P("gk_goals_prevented") },
-    { role: "Ball-Playing GK", score: (s) => 0.45 * s.P("pass_pct") + 0.3 * s.P("passes") + 0.25 * s.P("final_third_passes") },
-    { role: "Sweeper Keeper", score: (s) => 0.4 * s.gkAdv + 0.35 * s.P("passes") + 0.25 * s.P("gk_goals_prevented") },
-    { role: "No-Nonsense GK", score: (s) => 0.4 * (100 - s.P("pass_pct")) + 0.35 * s.P("long_balls") + 0.25 * (100 - s.P("final_third_passes")) },
+    { role: "Shot-Stopper", terms: [{ p: "gk_save_pct", w: 0.55 }, { p: "gk_goals_prevented", w: 0.45 }] },
+    { role: "Ball-Playing GK", terms: [{ p: "pass_pct", w: 0.45 }, { p: "passes", w: 0.3 }, { p: "final_third_passes", w: 0.25 }] },
+    { role: "Sweeper Keeper", terms: [{ pos: "gkAdv", w: 0.4 }, { p: "passes", w: 0.35 }, { p: "gk_goals_prevented", w: 0.25 }] },
+    { role: "No-Nonsense GK", terms: [{ p: "pass_pct", w: 0.4, inv: true }, { p: "long_balls", w: 0.35 }, { p: "final_third_passes", w: 0.25, inv: true }] },
   ],
   CB: [
-    { role: "Ball-Playing CB", score: (s) => 0.4 * s.P("pass_pct") + 0.3 * s.P("final_third_passes") + 0.2 * s.P("passes") + 0.1 * s.P("long_ball_pct") },
-    { role: "No-Nonsense CB", score: (s) => 0.4 * s.P("clearances") + 0.3 * s.P("aerial_won") + 0.3 * (100 - s.P("pass_pct")) },
-    { role: "Stopper", score: (s) => 0.35 * s.P("tackles") + 0.25 * s.P("interceptions") + 0.2 * s.P("duels_won_pct") + 0.2 * s.fs },
-    { role: "Wide CB", score: (s) => 0.6 * s.wide + 0.4 * s.P("aerial_won") },
-    { role: "Aggressive CB", score: (s) => 0.4 * s.fs + 0.3 * s.P("poss_won_att_third") + 0.3 * s.P("ball_recovery") },
+    { role: "Ball-Playing CB", terms: [{ p: "pass_pct", w: 0.4 }, { p: "final_third_passes", w: 0.3 }, { p: "passes", w: 0.2 }, { p: "long_ball_pct", w: 0.1 }] },
+    { role: "No-Nonsense CB", terms: [{ p: "clearances", w: 0.4 }, { p: "aerial_won", w: 0.3 }, { p: "pass_pct", w: 0.3, inv: true }] },
+    { role: "Stopper", terms: [{ p: "tackles", w: 0.35 }, { p: "interceptions", w: 0.25 }, { p: "duels_won_pct", w: 0.2 }, { pos: "fs", w: 0.2 }] },
+    { role: "Wide CB", terms: [{ pos: "wide", w: 0.6 }, { p: "aerial_won", w: 0.4 }] },
+    { role: "Aggressive CB", terms: [{ pos: "fs", w: 0.4 }, { p: "poss_won_att_third", w: 0.3 }, { p: "ball_recovery", w: 0.3 }] },
   ],
   BACK: [
-    { role: "Attacking Wing-Back", score: (s) => 0.4 * s.fs + 0.25 * s.P("acc_crosses") + 0.2 * s.P("key_passes") + 0.15 * s.P("dribbles") },
-    { role: "Holding Full-Back", score: (s) => 0.4 * (100 - s.fs) + 0.25 * s.P("tackles") + 0.2 * s.P("interceptions") + 0.15 * (100 - s.P("acc_crosses")) },
-    { role: "Inverted Full-Back", score: (s) => 0.5 * s.inward + 0.3 * s.P("pass_pct") + 0.2 * s.P("passes") },
-    { role: "Pressing Full-Back", score: (s) => 0.35 * s.P("poss_won_att_third") + 0.3 * s.P("tackles") + 0.2 * s.P("ball_recovery") + 0.15 * s.fs },
+    { role: "Attacking Wing-Back", terms: [{ pos: "fs", w: 0.4 }, { p: "acc_crosses", w: 0.25 }, { p: "key_passes", w: 0.2 }, { p: "dribbles", w: 0.15 }] },
+    { role: "Holding Full-Back", terms: [{ pos: "fs", w: 0.4, inv: true }, { p: "tackles", w: 0.25 }, { p: "interceptions", w: 0.2 }, { p: "acc_crosses", w: 0.15, inv: true }] },
+    { role: "Inverted Full-Back", terms: [{ pos: "inward", w: 0.5 }, { p: "pass_pct", w: 0.3 }, { p: "passes", w: 0.2 }] },
+    { role: "Pressing Full-Back", terms: [{ p: "poss_won_att_third", w: 0.35 }, { p: "tackles", w: 0.3 }, { p: "ball_recovery", w: 0.2 }, { pos: "fs", w: 0.15 }] },
   ],
   MID: [
-    { role: "Anchor", score: (s) => 0.3 * s.deep + 0.3 * s.P("tackles") + 0.25 * s.P("interceptions") + 0.15 * s.P("clearances") },
-    { role: "Deep-Lying Playmaker", score: (s) => 0.35 * s.P("pass_pct") + 0.3 * s.P("passes") + 0.2 * s.P("final_third_passes") + 0.15 * s.deep },
-    { role: "Box-to-Box", score: (s) => 0.3 * s.range + 0.2 * s.P("npg") + 0.2 * s.P("ball_recovery") + 0.15 * s.P("tackles") + 0.15 * s.P("dribbles") },
-    { role: "Advanced Playmaker", score: (s) => 0.25 * s.advanced + 0.35 * s.P("key_passes") + 0.25 * s.P("big_chances_created") + 0.15 * s.P("dribbles") },
+    { role: "Anchor", terms: [{ pos: "deep", w: 0.3 }, { p: "tackles", w: 0.3 }, { p: "interceptions", w: 0.25 }, { p: "clearances", w: 0.15 }] },
+    { role: "Deep-Lying Playmaker", terms: [{ p: "pass_pct", w: 0.35 }, { p: "passes", w: 0.3 }, { p: "final_third_passes", w: 0.2 }, { pos: "deep", w: 0.15 }] },
+    { role: "Box-to-Box", terms: [{ pos: "range", w: 0.3 }, { p: "npg", w: 0.2 }, { p: "ball_recovery", w: 0.2 }, { p: "tackles", w: 0.15 }, { p: "dribbles", w: 0.15 }] },
+    { role: "Advanced Playmaker", terms: [{ pos: "advanced", w: 0.25 }, { p: "key_passes", w: 0.35 }, { p: "big_chances_created", w: 0.25 }, { p: "dribbles", w: 0.15 }] },
   ],
   WIDE: [
-    { role: "Winger", score: (s) => 0.3 * s.wide + 0.35 * s.P("acc_crosses") + 0.35 * s.P("dribbles") },
-    // Lateral inversion is weak in our depth-based phase proxy, so lean on the
-    // essence: a wide player who shoots and scores (vs. crosses/creates).
-    { role: "Inside Forward", score: (s) => 0.15 * s.inward + 0.3 * s.P("xg") + 0.25 * s.P("shots") + 0.3 * s.P("npg") },
-    { role: "Wide Playmaker", score: (s) => 0.4 * s.P("key_passes") + 0.3 * s.P("big_chances_created") + 0.3 * s.P("dribbles") },
+    { role: "Winger", terms: [{ pos: "wide", w: 0.3 }, { p: "acc_crosses", w: 0.35 }, { p: "dribbles", w: 0.35 }] },
+    { role: "Inside Forward", terms: [{ pos: "inward", w: 0.15 }, { p: "xg", w: 0.3 }, { p: "shots", w: 0.25 }, { p: "npg", w: 0.3 }] },
+    { role: "Wide Playmaker", terms: [{ p: "key_passes", w: 0.4 }, { p: "big_chances_created", w: 0.3 }, { p: "dribbles", w: 0.3 }] },
   ],
   STRIKER: [
-    { role: "Poacher", score: (s) => 0.35 * s.P("npg") + 0.3 * s.P("xg") + 0.2 * (100 - s.P("passes")) + 0.15 * (100 - s.P("key_passes")) },
-    { role: "Target Forward", score: (s) => 0.45 * s.P("aerial_won") + 0.2 * s.P("shots") + 0.15 * (100 - s.P("dribbles")) + 0.2 * s.P("npg") },
-    { role: "Deep-Lying Forward", score: (s) => 0.3 * span(0.72 - s.cx, 0, 0.15) + 0.3 * s.P("key_passes") + 0.2 * s.P("passes") + 0.2 * s.P("big_chances_created") },
-    { role: "Complete Forward", score: (s) => 0.25 * s.P("npg") + 0.25 * s.P("key_passes") + 0.25 * s.P("dribbles") + 0.25 * s.P("xa") },
+    { role: "Poacher", terms: [{ p: "npg", w: 0.35 }, { p: "xg", w: 0.3 }, { p: "passes", w: 0.2, inv: true }, { p: "key_passes", w: 0.15, inv: true }] },
+    { role: "Target Forward", terms: [{ p: "aerial_won", w: 0.45 }, { p: "shots", w: 0.2 }, { p: "dribbles", w: 0.15, inv: true }, { p: "npg", w: 0.2 }] },
+    { role: "Deep-Lying Forward", terms: [{ pos: "drop", w: 0.3 }, { p: "key_passes", w: 0.3 }, { p: "passes", w: 0.2 }, { p: "big_chances_created", w: 0.2 }] },
+    { role: "Complete Forward", terms: [{ p: "npg", w: 0.25 }, { p: "key_passes", w: 0.25 }, { p: "dribbles", w: 0.25 }, { p: "xa", w: 0.25 }] },
   ],
 };
 
@@ -82,39 +103,52 @@ function bucketOf(posGroup: string, cx: number, cy: number): string {
   if (posGroup === "DF") return wide ? "BACK" : "CB";
   if (posGroup === "FW") return wide ? "WIDE" : "STRIKER";
   if (posGroup === "MF") return wide ? "WIDE" : "MID";
-  // Unknown position → infer from depth.
   if (cx < 0.42) return wide ? "BACK" : "CB";
   if (cx > 0.62) return wide ? "WIDE" : "STRIKER";
   return wide ? "WIDE" : "MID";
 }
 
-/** Classify a player's role from his position group, percentiles and centroid.
- *  Returns null primary if there's no heatmap centroid (no positional signal). */
+// Top signals that drove the score — those the player is actually strong on, by
+// contribution (weight × value). Falls back to top-2 if nothing stands out.
+function explain(terms: Term[], s: Sig): string[] {
+  const scored = terms
+    .map((t) => ({ t, v: termValue(t, s), c: t.w * termValue(t, s) }))
+    .sort((a, b) => b.c - a.c);
+  const strong = scored.filter((x) => x.v >= 55);
+  return (strong.length ? strong : scored).slice(0, 3).map((x) => termLabel(x.t, s));
+}
+
 export function classifyRole(
   posGroup: string,
   pct: Record<string, number | null>,
   c: SquadCentroid | null,
 ): RoleResult {
   if (!c) return { bucket: posGroup || "?", primary: null, secondary: null };
-  const P = (k: string) => pct[k] ?? 50;
   const sig: Sig = {
-    P,
-    cx: c.cx, cy: c.cy, cxA: c.cxA, cyA: c.cyA,
-    wide: span(Math.abs(c.cy - 0.5), 0.1, 0.32),
-    fs: span(c.cxA - c.cxD, 0.02, 0.22),
-    inward: span(Math.abs(c.cyD - 0.5) - Math.abs(c.cyA - 0.5), 0, 0.18),
-    range: span(c.cxA - c.cxD, 0.05, 0.28),
-    deep: span(0.6 - c.cx, 0, 0.22),
-    advanced: span(c.cx - 0.52, 0, 0.22),
-    gkAdv: span(c.cx - 0.12, 0, 0.1),
+    P: (k) => pct[k] ?? 50,
+    pos: {
+      fs: span(c.cxA - c.cxD, 0.02, 0.22),
+      inward: span(Math.abs(c.cyD - 0.5) - Math.abs(c.cyA - 0.5), 0, 0.18),
+      wide: span(Math.abs(c.cy - 0.5), 0.1, 0.32),
+      deep: span(0.6 - c.cx, 0, 0.22),
+      advanced: span(c.cx - 0.52, 0, 0.22),
+      range: span(c.cxA - c.cxD, 0.05, 0.28),
+      gkAdv: span(c.cx - 0.12, 0, 0.1),
+      drop: span(0.72 - c.cx, 0, 0.15),
+    },
   };
   const bucket = bucketOf(posGroup, c.cx, c.cy);
   const ranked = (ROLES[bucket] ?? [])
-    .map((r) => ({ role: r.role, conf: Math.round(clamp(r.score(sig))) }))
+    .map((r) => ({
+      role: r.role,
+      conf: Math.round(clamp(r.terms.reduce((a, t) => a + t.w * termValue(t, sig), 0))),
+      terms: r.terms,
+    }))
     .sort((a, b) => b.conf - a.conf);
+  const fit = (r: (typeof ranked)[number]): RoleFit => ({ role: r.role, conf: r.conf, why: explain(r.terms, sig) });
   return {
     bucket,
-    primary: ranked[0] ?? null,
-    secondary: ranked[1] && ranked[1].conf >= 50 ? ranked[1] : null,
+    primary: ranked[0] ? fit(ranked[0]) : null,
+    secondary: ranked[1] && ranked[1].conf >= 50 ? fit(ranked[1]) : null,
   };
 }
