@@ -65,12 +65,15 @@ const ROLES: Record<string, { role: string; terms: Term[] }[]> = {
     { role: "Sweeper Keeper", terms: [{ pos: "gkAdv", w: 0.4 }, { p: "passes", w: 0.35 }, { p: "gk_goals_prevented", w: 0.25 }] },
     { role: "No-Nonsense GK", terms: [{ p: "pass_pct", w: 0.4, inv: true }, { p: "long_balls", w: 0.35 }, { p: "final_third_passes", w: 0.25, inv: true }] },
   ],
+  // Central CB roles carry a centrality term (inverse-wide) so a wide, tackle-heavy
+  // full-back doesn't read as a Stopper/CB — his wide centroid pulls him to BACK.
+  // Wide CB is the exception (it's meant to sit wide in a back three).
   CB: [
-    { role: "Ball-Playing CB", terms: [{ p: "pass_pct", w: 0.4 }, { p: "final_third_passes", w: 0.3 }, { p: "passes", w: 0.2 }, { p: "long_ball_pct", w: 0.1 }] },
-    { role: "No-Nonsense CB", terms: [{ p: "clearances", w: 0.4 }, { p: "aerial_won", w: 0.3 }, { p: "pass_pct", w: 0.3, inv: true }] },
-    { role: "Stopper", terms: [{ p: "tackles", w: 0.35 }, { p: "interceptions", w: 0.25 }, { p: "duels_won_pct", w: 0.2 }, { pos: "fs", w: 0.2 }] },
-    { role: "Wide CB", terms: [{ pos: "wide", w: 0.6 }, { p: "aerial_won", w: 0.4 }] },
-    { role: "Aggressive CB", terms: [{ pos: "fs", w: 0.4 }, { p: "poss_won_att_third", w: 0.3 }, { p: "ball_recovery", w: 0.3 }] },
+    { role: "Ball-Playing CB", terms: [{ pos: "wide", w: 0.25, inv: true }, { p: "pass_pct", w: 0.35 }, { p: "final_third_passes", w: 0.25 }, { p: "passes", w: 0.15 }] },
+    { role: "No-Nonsense CB", terms: [{ pos: "wide", w: 0.25, inv: true }, { p: "clearances", w: 0.35 }, { p: "aerial_won", w: 0.25 }, { p: "pass_pct", w: 0.15, inv: true }] },
+    { role: "Stopper", terms: [{ pos: "wide", w: 0.3, inv: true }, { p: "tackles", w: 0.3 }, { p: "interceptions", w: 0.2 }, { p: "duels_won_pct", w: 0.2 }] },
+    { role: "Wide CB", terms: [{ pos: "wide", w: 0.35 }, { p: "aerial_won", w: 0.5 }, { p: "clearances", w: 0.15 }] },
+    { role: "Aggressive CB", terms: [{ pos: "wide", w: 0.2, inv: true }, { pos: "fs", w: 0.35 }, { p: "poss_won_att_third", w: 0.25 }, { p: "ball_recovery", w: 0.2 }] },
   ],
   BACK: [
     { role: "Attacking Wing-Back", terms: [{ pos: "fs", w: 0.35 }, { pos: "wide", w: 0.15 }, { p: "acc_crosses", w: 0.2 }, { p: "key_passes", w: 0.15 }, { p: "dribbles", w: 0.15 }] },
