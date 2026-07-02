@@ -7,6 +7,8 @@
 import { getTeams, getTeamLeagueSeasons } from "./teams.ts";
 import { getTeamWeakness, type ZoneCover } from "./weakness.ts";
 import { getCrossLeaguePlayers } from "./players.ts";
+import { getShortlistData } from "./shortlist.ts";
+import { ROLE_BUCKET, BUCKET_ORDER } from "./role-meta.ts";
 import { getTeamHeatmap, getSquadCentroids, type Heatmap } from "./heatmap.ts";
 import { getTeamFormations, type Formation } from "./formations.ts";
 import { classifyRole } from "./roles.ts";
@@ -64,6 +66,19 @@ export interface PlayerDot {
   role: string | null; // data-driven role
 }
 
+export interface RoleSlot {
+  role: string;
+  bucket: string;
+  players: { key: string; player: string; out: number | null }[];
+  bestOut: number | null;
+}
+export interface RoleUpgrade {
+  role: string;
+  currentPlayer: string | null;
+  currentOut: number | null;
+  candidates: { key: string; player: string; team: string; league: string; out: number | null; age: number | null }[];
+}
+
 export interface TeamReport {
   team: string;
   league: string;
@@ -76,6 +91,8 @@ export interface TeamReport {
   strengths: TeamMetricReport[]; // top percentile metrics
   weaknesses: TeamMetricReport[]; // bottom percentile metrics
   squad: SquadGroup[]; // players by position with position-appropriate stats
+  roleMakeup: RoleSlot[]; // squad grouped by data-driven role
+  roleUpgrades: RoleUpgrade[]; // weakest-covered roles + cross-league candidates
   formations: Formation[]; // most-used formations this season (top first)
   style: TeamStyle | null; // in-possession + out-of-possession playing style
 
@@ -344,6 +361,44 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
     });
   }
 
+  // Role composition + gaps: group the squad by its data-driven role, then for the
+  // weakest-covered roles surface higher-OUT players of the same role from other
+  // clubs (cross-league). Reuses the shortlist payload (cached) as the role pool.
+  const roleMakeup: RoleSlot[] = [];
+  const roleUpgrades: RoleUpgrade[] = [];
+  {
+    const rows = squad.flatMap((g) => g.rows);
+    const byRole = new Map<string, { key: string; player: string; out: number | null }[]>();
+    for (const r of rows) {
+      if (!r.role) continue;
+      (byRole.get(r.role) ?? byRole.set(r.role, []).get(r.role)!).push({ key: r.key, player: r.player, out: r.out });
+    }
+    for (const [role, ps] of byRole) {
+      ps.sort((a, b) => (b.out ?? -1) - (a.out ?? -1));
+      const bestOut = ps[0]?.out ?? null;
+      roleMakeup.push({ role, bucket: ROLE_BUCKET[role] ?? "?", players: ps, bestOut });
+    }
+    roleMakeup.sort((a, b) => BUCKET_ORDER.indexOf(a.bucket) - BUCKET_ORDER.indexOf(b.bucket) || (b.bestOut ?? 0) - (a.bestOut ?? 0));
+
+    // Role pool for upgrades (cross-league, by role, sorted by OUT).
+    const sl = getShortlistData();
+    const pool = new Map<string, typeof sl.players>();
+    for (const p of sl.players) {
+      if (!p.role || (p.min ?? 0) < 600) continue;
+      (pool.get(p.role) ?? pool.set(p.role, []).get(p.role)!).push(p);
+    }
+    for (const arr of pool.values()) arr.sort((a, b) => (b.out ?? -1) - (a.out ?? -1));
+
+    const weakest = roleMakeup.filter((r) => r.bestOut != null).sort((a, b) => a.bestOut! - b.bestOut!).slice(0, 4);
+    for (const slot of weakest) {
+      const cands = (pool.get(slot.role) ?? [])
+        .filter((c) => normTeam(c.t) !== nt && (c.out ?? -1) > (slot.bestOut ?? -1))
+        .slice(0, 5)
+        .map((c) => ({ key: c.key, player: c.n, team: c.t, league: c.lg, out: c.out, age: c.age }));
+      roleUpgrades.push({ role: slot.role, currentPlayer: slot.players[0]?.player ?? null, currentOut: slot.bestOut, candidates: cands });
+    }
+  }
+
   // Nothing to show at all → let the caller 404. Otherwise render whatever we have
   // (team stats OR squad OR zones), so a name mismatch never blanks the whole report.
   if (!me && squad.length === 0 && !weakness) return null;
@@ -360,6 +415,8 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
     strengths,
     weaknesses,
     squad,
+    roleMakeup,
+    roleUpgrades,
     formations,
     style,
     positions,

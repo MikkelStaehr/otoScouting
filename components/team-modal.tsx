@@ -8,6 +8,7 @@ import { PitchHeatmap } from "./pitch-heatmap";
 import { ZonePitch } from "./zone-pitch";
 import { FormationPitch, type Dot } from "./formation-pitch";
 import { roleDesc } from "@/lib/role-meta";
+import { WatchlistButton } from "./watchlist";
 
 const OPEN_EVENT = "otoscout:open-team";
 
@@ -37,6 +38,8 @@ interface SquadRow {
   values: (number | null)[]; pcts: (number | null)[];
 }
 interface SquadGroup { group: string; label: string; cols: SquadCol[]; rows: SquadRow[] }
+interface RoleSlot { role: string; bucket: string; players: { key: string; player: string; out: number | null }[]; bestOut: number | null }
+interface RoleUpgrade { role: string; currentPlayer: string | null; currentOut: number | null; candidates: { key: string; player: string; team: string; league: string; out: number | null; age: number | null }[] }
 interface Formation { formation: string; n: number; pct: number }
 interface StyleFit { style: string; conf: number; why: string[] }
 interface StyleResult { primary: StyleFit | null; secondary: StyleFit | null }
@@ -47,6 +50,8 @@ interface TeamReport {
   ratingRank: number | null; teamsInLeague: number;
   metrics: MetricReport[]; strengths: MetricReport[]; weaknesses: MetricReport[];
   squad: SquadGroup[];
+  roleMakeup: RoleSlot[];
+  roleUpgrades: RoleUpgrade[];
   formations: Formation[];
   style: TeamStyle | null;
   positions: Dot[];
@@ -73,7 +78,7 @@ export function TeamModal() {
   const [visible, setVisible] = useState(false);
   const [detail, setDetail] = useState<TeamReport | null>(null);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<"report" | "squad">("report");
+  const [tab, setTab] = useState<"report" | "squad" | "roles">("report");
   const [phase, setPhase] = useState<"all" | "att" | "def">("all");
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -186,7 +191,7 @@ export function TeamModal() {
         {/* tabs */}
         {detail && (
           <div className="flex gap-1 border-b border-line px-6 pt-2">
-            {([["report", "Rapport"], ["squad", `Trup${detail.squad.length ? ` · ${detail.squad.reduce((a, g) => a + g.rows.length, 0)}` : ""}`]] as const).map(([k, label]) => (
+            {([["report", "Rapport"], ["squad", `Trup${detail.squad.length ? ` · ${detail.squad.reduce((a, g) => a + g.rows.length, 0)}` : ""}`], ["roles", "Roller"]] as const).map(([k, label]) => (
               <button
                 key={k}
                 onClick={() => { setTab(k); bodyRef.current?.scrollTo({ top: 0 }); }}
@@ -332,7 +337,7 @@ export function TeamModal() {
                 </div>
               </div>
             </>
-          ) : (
+          ) : tab === "squad" ? (
             /* squad tab — players by line with position-appropriate key stats */
             <>
               {detail.squad.length === 0 ? (
@@ -351,7 +356,79 @@ export function TeamModal() {
                 </>
               )}
             </>
+          ) : (
+            /* roles tab — role composition + upgrade targets */
+            <RolesTab makeup={detail.roleMakeup} upgrades={detail.roleUpgrades} />
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const outClr = (o: number | null) =>
+  o == null ? "var(--color-faint)" : o >= 62 ? "rgba(77,124,90,1)" : o >= 48 ? "var(--color-muted)" : "rgba(180,105,74,1)";
+
+function RolesTab({ makeup, upgrades }: { makeup: RoleSlot[]; upgrades: RoleUpgrade[] }) {
+  if (!makeup.length) return <div className="py-16 text-center font-mono text-sm text-faint">ingen rolle-data</div>;
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      {/* composition */}
+      <div className="lg:col-span-7">
+        <div className="mb-2 flex items-baseline justify-between">
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Rolle-sammensætning</span>
+          <span className="font-mono text-[10px] text-faint">hvilke profiler holdet har</span>
+        </div>
+        <div className="space-y-1.5">
+          {makeup.map((s) => (
+            <div key={s.role} className="flex items-center gap-2 rounded-lg border border-line bg-panel/30 px-3 py-2">
+              <span className="w-14 shrink-0 font-mono text-[9px] uppercase tracking-wider text-faint">{s.bucket}</span>
+              <span className="w-40 shrink-0 truncate text-sm font-medium text-fg" title={roleDesc(s.role)}>{s.role}</span>
+              <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted">
+                {s.players.map((p, i) => (
+                  <span key={p.key}>
+                    {i > 0 && ", "}
+                    <button onClick={() => openPlayer(p.key)} className="transition-colors hover:text-volt">{p.player.split(" ").slice(-1)[0]}</button>
+                  </span>
+                ))}
+              </span>
+              <span className="tnum shrink-0 font-mono text-sm font-bold" style={{ color: outClr(s.bestOut) }}>{s.bestOut ?? "—"}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* upgrade targets */}
+      <div className="lg:col-span-5">
+        <div className="mb-2 flex items-baseline justify-between">
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Opgradér-mål</span>
+          <span className="font-mono text-[10px] text-faint">svageste roller → bedre profiler</span>
+        </div>
+        <div className="space-y-2.5">
+          {upgrades.map((u) => (
+            <div key={u.role} className="rounded-xl border border-line bg-panel/30 p-3">
+              <div className="mb-1 flex items-baseline justify-between">
+                <span className="text-sm font-medium text-fg" title={roleDesc(u.role)}>{u.role}</span>
+                <span className="font-mono text-[10px] text-faint">nu: {u.currentPlayer?.split(" ").slice(-1)[0]} <span style={{ color: outClr(u.currentOut) }}>{u.currentOut}</span></span>
+              </div>
+              {u.candidates.length === 0 ? (
+                <div className="py-1 font-mono text-[10px] text-faint">ingen klare opgraderinger</div>
+              ) : (
+                <div className="space-y-0.5">
+                  {u.candidates.slice(0, 4).map((c) => (
+                    <div key={c.key} className="flex items-center gap-1.5">
+                      <WatchlistButton target={{ sid: null, key: c.key, n: c.player, t: c.team, lg: c.league }} />
+                      <button onClick={() => openPlayer(c.key)} className="min-w-0 flex-1 truncate text-left text-xs text-fg transition-colors hover:text-volt">
+                        {c.player}
+                        <span className="ml-1 font-mono text-[9px] text-faint">{c.team} · {c.league.slice(0, 3)}{c.age != null && ` · ${c.age}`}</span>
+                      </button>
+                      <span className="tnum shrink-0 font-mono text-[11px] font-semibold text-volt">{c.out}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
