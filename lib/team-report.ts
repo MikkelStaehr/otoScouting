@@ -8,6 +8,7 @@ import { getTeams, getTeamLeagueSeasons } from "./teams.ts";
 import { getTeamWeakness, type ZoneCover } from "./weakness.ts";
 import { getCrossLeaguePlayers } from "./players.ts";
 import { getTeamHeatmap, type Heatmap } from "./heatmap.ts";
+import { getTeamFormations, type Formation } from "./formations.ts";
 import { normTeam } from "./merge.ts";
 import { TEAM_METRICS } from "./team-metrics.ts";
 import type { EnrichedTeam, EnrichedPlayer, MetricKey } from "./types.ts";
@@ -58,6 +59,7 @@ export interface TeamReport {
   strengths: TeamMetricReport[]; // top percentile metrics
   weaknesses: TeamMetricReport[]; // bottom percentile metrics
   squad: SquadGroup[]; // players by position with position-appropriate stats
+  formations: Formation[]; // most-used formations this season (top first)
   heatmap: Heatmap | null; // minute-weighted composite of the outfield squad
   // defensive-zone weakness + recruitment fits (existing engine)
   zones: ZoneCover[];
@@ -190,6 +192,7 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
   let siblings: EnrichedTeam[] = [];
   let me: EnrichedTeam | undefined;
   let seasonLabel = "";
+  let seasonCode = "";
   for (const s of seasons) {
     const ts = getTeams(league, s.season);
     const found = ts.find((t) => normTeam(t.team) === nt);
@@ -197,9 +200,11 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
       siblings = ts;
       me = found;
       seasonLabel = s.season_label;
+      seasonCode = s.season;
       break;
     }
   }
+  const formations = me ? getTeamFormations(league, seasonCode, me.sofascore_team_id) : [];
 
   const metrics: TeamMetricReport[] = [];
   let ratingRank: number | null = null;
@@ -264,6 +269,7 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
     strengths,
     weaknesses,
     squad,
+    formations,
     heatmap,
     zones: weakness?.zones ?? [],
     goalsAgainst: me?.value["goals_conceded"] ?? weakness?.goalsAgainst ?? null,

@@ -35,12 +35,14 @@ interface SquadRow {
   values: (number | null)[]; pcts: (number | null)[];
 }
 interface SquadGroup { group: string; label: string; cols: SquadCol[]; rows: SquadRow[] }
+interface Formation { formation: string; n: number; pct: number }
 interface TeamReport {
   team: string; league: string; season_label: string;
   matches: number | null; rating: number | null;
   ratingRank: number | null; teamsInLeague: number;
   metrics: MetricReport[]; strengths: MetricReport[]; weaknesses: MetricReport[];
   squad: SquadGroup[];
+  formations: Formation[];
   heatmap: { w: number; h: number; grid: number[] } | null;
   zones: ZoneCover[];
   goalsAgainst: number | null; bigChancesAgainst: number | null;
@@ -204,6 +206,20 @@ export function TeamModal() {
                 <KpiMetric m={def.find((m) => m.key === "big_chances_against")} label="Store ch. imod" of={detail.teamsInLeague} />
                 <KpiMetric m={def.find((m) => m.key === "clean_sheets")} label="Clean sheets" of={detail.teamsInLeague} />
               </div>
+
+              {/* formations (top few this season) */}
+              {detail.formations.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-faint">Formationer</span>
+                  {detail.formations.slice(0, 3).map((f, i) => (
+                    <span key={f.formation} className="inline-flex items-center gap-1.5 rounded-lg border border-line-2 bg-panel/40 px-2.5 py-1">
+                      <span className={`font-mono text-sm ${i === 0 ? "font-bold text-fg" : "text-muted"}`}>{f.formation}</span>
+                      <span className="font-mono text-[10px] text-faint">{f.pct}% · {f.n}×</span>
+                    </span>
+                  ))}
+                  <span className="font-mono text-[10px] text-faint">mest brugte opstillinger i sæsonen</span>
+                </div>
+              )}
 
               {/* strengths / weaknesses */}
               {(detail.strengths.length > 0 || detail.weaknesses.length > 0) && (
