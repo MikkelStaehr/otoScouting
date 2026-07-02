@@ -44,10 +44,12 @@ export function ScatterDashboard({
   players,
   teams,
   mode,
+  hideLeagueSelect = false,
 }: {
   players: PlayerPoint[];
   teams: TeamPoint[];
   mode: "players" | "teams";
+  hideLeagueSelect?: boolean;
 }) {
   const [xKey, setXKey] = useState("goals");
   const [yKey, setYKey] = useState("xg");
@@ -148,16 +150,18 @@ export function ScatterDashboard({
         <AxisSelect label="X" value={xKey} onChange={setXKey} axes={axes} />
         <AxisSelect label="Y" value={yKey} onChange={setYKey} axes={axes} />
 
-        <select
-          value={league}
-          onChange={(e) => setLeague(e.target.value)}
-          className="rounded-lg border border-line-2 bg-ink px-3 py-1.5 font-mono text-xs text-fg outline-none focus:border-volt/50"
-        >
-          <option value="ALL">Alle ligaer</option>
-          {leagues.map((lg) => (
-            <option key={lg} value={lg}>{lg}</option>
-          ))}
-        </select>
+        {!hideLeagueSelect && (
+          <select
+            value={league}
+            onChange={(e) => setLeague(e.target.value)}
+            className="rounded-lg border border-line-2 bg-ink px-3 py-1.5 font-mono text-xs text-fg outline-none focus:border-volt/50"
+          >
+            <option value="ALL">Alle ligaer</option>
+            {leagues.map((lg) => (
+              <option key={lg} value={lg}>{lg}</option>
+            ))}
+          </select>
+        )}
 
         <input
           value={query}
