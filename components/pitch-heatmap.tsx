@@ -80,7 +80,9 @@ export function PitchHeatmap({ hm, id = "hm" }: { hm: PitchGrid; id?: string }) 
           {hm.grid.map((v, i) => {
             if (v <= 0.012) return null;
             const col = i % hm.w;
-            const row = Math.floor(i / hm.w);
+            // Sofascore's width axis runs opposite to the broadcast convention, so
+            // mirror rows vertically → left flank on top (attacking →).
+            const row = hm.h - 1 - Math.floor(i / hm.w);
             return (
               <rect
                 key={i}

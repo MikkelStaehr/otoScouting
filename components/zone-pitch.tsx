@@ -35,7 +35,8 @@ export function ZonePitch({ hm, cols = 3, rows = 3, id = "zp" }: { hm: PitchGrid
       <g clipPath={`url(#${id}-clip)`}>
         {shares.map((s, i) => {
           const zc = i % cols;
-          const zr = Math.floor(i / cols);
+          // Mirror rows so left flank is on top (Sofascore y runs opposite).
+          const zr = rows - 1 - Math.floor(i / cols);
           const a = (s / maxShare) * 0.82;
           const pct = Math.round(s * 100);
           return (

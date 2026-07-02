@@ -86,7 +86,8 @@ export function FormationPitch({
       {/* player dots */}
       {shown.map((d) => {
         const x = px(d) * W;
-        const y = py(d) * H;
+        // Mirror the width axis so left flank is on top (Sofascore y is inverted).
+        const y = (1 - py(d)) * H;
         const r = 5.5 + (d.minutes / maxMin) * 4;
         return (
           <g key={d.key} onClick={() => onPick(d.key)} style={{ cursor: "pointer" }}>
