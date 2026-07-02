@@ -46,6 +46,7 @@ export interface SimilarPlayer {
 }
 export interface PlayerDetail {
   key: string;
+  sid: number | null; // sofascore_id (stable id for watchlists)
   player: string;
   team: string;
   league: string;
@@ -125,6 +126,7 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
 
   return {
     key,
+    sid: target.sofascore_id ?? null,
     player: target.player,
     team: target.team,
     league: target.league,

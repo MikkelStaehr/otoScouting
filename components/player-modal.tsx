@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { flagUrl } from "@/lib/flags";
 import { teamLogoUrl } from "@/lib/team-logos";
 import { PitchHeatmap } from "./pitch-heatmap";
+import { WatchlistButton } from "./watchlist";
 
 const OPEN_EVENT = "otoscout:open-player";
 
@@ -20,7 +21,7 @@ interface SimilarPlayer {
 }
 interface HeatmapData { w: number; h: number; grid: number[]; nPoints: number; matches: number | null }
 interface PlayerDetail {
-  key: string; player: string; team: string; league: string;
+  key: string; sid: number | null; player: string; team: string; league: string;
   age: number | null; pos: string | null; posGroup: string;
   nation: string | null; minutes: number; out: number | null;
   heatmap: HeatmapData | null;
@@ -128,6 +129,12 @@ export function PlayerModal() {
             )}
           </div>
           <div className="flex items-center gap-3">
+            {detail && (
+              <WatchlistButton
+                target={{ sid: detail.sid, key: detail.key, n: detail.player, t: detail.team, lg: detail.league }}
+                size="md"
+              />
+            )}
             {detail?.out != null && (
               <div className="text-right">
                 <div className="tnum text-2xl font-bold text-volt">{detail.out}</div>
