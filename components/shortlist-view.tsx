@@ -9,6 +9,7 @@ import { flagUrl } from "@/lib/flags";
 import { teamLogoUrl } from "@/lib/team-logos";
 import { openPlayer } from "./player-modal";
 import { WatchlistButton, useWatchlists, watchlists } from "./watchlist";
+import { RadarCompare } from "./radar-compare";
 
 const LG = (lg: string) => lg.slice(0, 3);
 const FILT = "rounded-lg border border-line-2 bg-ink px-2 py-1.5 font-mono text-xs text-fg outline-none focus:border-volt/50";
@@ -343,6 +344,14 @@ function WatchTab({ byKey }: { byKey: Map<string, ShortlistPlayer> }) {
     return m;
   }, [byKey]);
   const [newName, setNewName] = useState("");
+  const [sel, setSel] = useState<string[]>([]); // player keys picked for comparison (max 3)
+  const [comparing, setComparing] = useState(false);
+
+  const resolve = (e: { sid: number | null; key: string }) =>
+    (e.sid != null ? bySid.get(e.sid) : undefined) ?? byKey.get(e.key);
+  const toggleSel = (key: string) =>
+    setSel((s) => (s.includes(key) ? s.filter((k) => k !== key) : s.length >= 3 ? s : [...s, key]));
+  const selPlayers = sel.map((k) => byKey.get(k)).filter((p): p is ShortlistPlayer => Boolean(p));
 
   if (all.length === 0) {
     return (
@@ -387,9 +396,18 @@ function WatchTab({ byKey }: { byKey: Map<string, ShortlistPlayer> }) {
           ) : (
             <ul className="divide-y divide-line/40">
               {l.players.map((e) => {
-                const cur = (e.sid != null ? bySid.get(e.sid) : undefined) ?? byKey.get(e.key);
+                const cur = resolve(e);
+                const on = cur ? sel.includes(cur.key) : false;
                 return (
                   <li key={`${e.sid ?? e.key}`} className="flex items-center gap-2 px-4 py-2 transition-colors hover:bg-panel/50">
+                    <button
+                      onClick={() => cur && toggleSel(cur.key)}
+                      disabled={!cur || (!on && sel.length >= 3)}
+                      title={cur ? "Vælg til sammenligning (op til 3)" : "ingen aktuelle data"}
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border text-[9px] transition-colors disabled:opacity-30 ${on ? "border-volt bg-volt text-ink" : "border-line-2 text-faint hover:border-volt/60"}`}
+                    >
+                      {on ? "✓" : ""}
+                    </button>
                     <Crest team={cur?.t ?? e.t} />
                     <button onClick={() => openPlayer(cur?.key ?? e.key)} className="min-w-0 flex-1 text-left">
                       <span className="text-fg transition-colors hover:text-volt">{cur?.n ?? e.n}</span>
@@ -404,6 +422,32 @@ function WatchTab({ byKey }: { byKey: Map<string, ShortlistPlayer> }) {
           )}
         </div>
       ))}
+
+      {/* compare tray */}
+      {selPlayers.length > 0 && (
+        <div className="fixed bottom-5 left-1/2 z-40 flex max-w-[95vw] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-full border border-line-2 bg-panel/95 px-3 py-2 shadow-xl shadow-black/20 backdrop-blur">
+          <span className="font-mono text-[11px] uppercase tracking-wider text-faint">sammenlign</span>
+          {selPlayers.map((p) => (
+            <span key={p.key} className="flex items-center gap-1.5 rounded-full bg-ink-2 px-2.5 py-1 text-xs text-fg">
+              {p.n}
+              <button onClick={() => toggleSel(p.key)} className="text-faint transition-colors hover:text-volt" aria-label={`Fjern ${p.n}`}>×</button>
+            </span>
+          ))}
+          {selPlayers.length < 2 && <span className="font-mono text-[11px] text-faint">vælg en mere…</span>}
+          <button
+            disabled={selPlayers.length < 2}
+            onClick={() => setComparing(true)}
+            className="rounded-full bg-volt px-3 py-1 text-xs font-semibold text-ink transition-opacity disabled:opacity-30"
+          >
+            Radar →
+          </button>
+          <button onClick={() => setSel([])} className="font-mono text-[11px] text-faint transition-colors hover:text-fg">ryd</button>
+        </div>
+      )}
+
+      {comparing && selPlayers.length >= 2 && (
+        <RadarCompare players={selPlayers} onClose={() => setComparing(false)} />
+      )}
     </div>
   );
 }
