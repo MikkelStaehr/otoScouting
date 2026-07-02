@@ -76,6 +76,7 @@ export interface RoleUpgrade {
   role: string;
   currentPlayer: string | null;
   currentOut: number | null;
+  reason: "kvalitet" | "dybde" | "begge"; // WHY this role is a transfer target
   candidates: { key: string; player: string; team: string; league: string; out: number | null; age: number | null }[];
 }
 
@@ -405,22 +406,62 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
     }
     for (const arr of pool.values()) arr.sort((a, b) => (b.out ?? -1) - (a.out ?? -1));
 
-    // Weakest-covered role PER LINE (so upgrade targets span the pitch, not just
-    // whichever area is worst overall).
-    const perBucket = new Map<string, RoleSlot>();
-    for (const s of roleMakeup) {
-      if (s.bestOut == null) continue;
-      const cur = perBucket.get(s.bucket);
-      if (!cur || s.bestOut < cur.bestOut!) perBucket.set(s.bucket, s);
-    }
-    const weakest = [...perBucket.values()].sort((a, b) => a.bestOut! - b.bestOut!);
-    for (const slot of weakest) {
+    // A role only becomes a transfer target if there's a genuine NEED, not just
+    // because it's the weakest slot on the pitch. Two triggers:
+    //   1. QUALITY — the role's best player is below the cross-league median OUT
+    //      (keeper vs. outfield medians kept apart, since they score differently).
+    //   2. DEPTH — the position line is thin. Counted from the FULL squad (players
+    //      with real minutes), NOT from roles: a club can have 5 CBs in the squad
+    //      but only 3 with enough minutes to earn a role.
+    const median = (arr: number[]): number => {
+      if (!arr.length) return 50;
+      const s = [...arr].sort((a, b) => a - b);
+      const m = s.length >> 1;
+      return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
+    };
+    const qualOut = median(sl.players.filter((p) => !p.isGk && p.out != null && (p.min ?? 0) >= 600).map((p) => p.out!));
+    const qualGk = median(sl.players.filter((p) => p.isGk && p.out != null && (p.min ?? 0) >= 600).map((p) => p.out!));
+
+    // Line depth from the squad (position group), floor at role-qualification minutes.
+    // No GK line: a backup keeper rarely logs 450+ league minutes, so every club
+    // would read as thin at GK — keepers are a quality-only signal.
+    const REGULAR_MIN = 450;
+    const LINE_MIN: Record<string, number> = { DF: 5, MF: 4, FW: 2 };
+    const lineCount: Record<string, number> = {};
+    const playerLine = new Map<string, string>();
+    for (const g of squad)
+      for (const r of g.rows) {
+        playerLine.set(r.key, g.group);
+        if (r.minutes >= REGULAR_MIN) lineCount[g.group] = (lineCount[g.group] ?? 0) + 1;
+      }
+    // A role's line = the group most of its players actually sit in.
+    const roleLine = (ps: { key: string }[]): string | null => {
+      const tally: Record<string, number> = {};
+      for (const p of ps) { const g = playerLine.get(p.key); if (g) tally[g] = (tally[g] ?? 0) + 1; }
+      return Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    };
+
+    const targets: (RoleUpgrade & { need: number })[] = [];
+    for (const slot of roleMakeup) {
+      const isGk = slot.bucket === "GK";
+      const qualThresh = isGk ? qualGk : qualOut;
+      const qualGap = slot.bestOut != null && slot.bestOut < qualThresh;
+      const line = roleLine(slot.players);
+      const thin = line != null && (lineCount[line] ?? 0) < (LINE_MIN[line] ?? 0);
+      if (!qualGap && !thin) continue;
+      const reason: RoleUpgrade["reason"] = qualGap && thin ? "begge" : qualGap ? "kvalitet" : "dybde";
+      // For a pure depth need, show the best profiles in the role (adding a body);
+      // for a quality need, only players clearly above who we already have.
       const cands = (pool.get(slot.role) ?? [])
-        .filter((c) => normTeam(c.t) !== nt && (c.out ?? -1) > (slot.bestOut ?? -1))
+        .filter((c) => normTeam(c.t) !== nt && (reason === "dybde" || (c.out ?? -1) > (slot.bestOut ?? -1)))
         .slice(0, 5)
         .map((c) => ({ key: c.key, player: c.n, team: c.t, league: c.lg, out: c.out, age: c.age }));
-      roleUpgrades.push({ role: slot.role, currentPlayer: slot.players[0]?.player ?? null, currentOut: slot.bestOut, candidates: cands });
+      // Rank by need: quality gaps first (by how far below the bar), then depth.
+      const need = qualGap ? 100 + (qualThresh - (slot.bestOut ?? qualThresh)) : (LINE_MIN[line!] ?? 0) - (lineCount[line!] ?? 0);
+      targets.push({ role: slot.role, currentPlayer: slot.players[0]?.player ?? null, currentOut: slot.bestOut, reason, candidates: cands, need });
     }
+    targets.sort((a, b) => b.need - a.need);
+    for (const t of targets.slice(0, 6)) roleUpgrades.push({ role: t.role, currentPlayer: t.currentPlayer, currentOut: t.currentOut, reason: t.reason, candidates: t.candidates });
   }
 
   // Nothing to show at all → let the caller 404. Otherwise render whatever we have

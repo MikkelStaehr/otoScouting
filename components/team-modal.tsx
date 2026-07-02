@@ -39,7 +39,7 @@ interface SquadRow {
 }
 interface SquadGroup { group: string; label: string; cols: SquadCol[]; rows: SquadRow[] }
 interface RoleSlot { role: string; bucket: string; players: { key: string; player: string; out: number | null }[]; bestOut: number | null }
-interface RoleUpgrade { role: string; currentPlayer: string | null; currentOut: number | null; candidates: { key: string; player: string; team: string; league: string; out: number | null; age: number | null }[] }
+interface RoleUpgrade { role: string; currentPlayer: string | null; currentOut: number | null; reason: "kvalitet" | "dybde" | "begge"; candidates: { key: string; player: string; team: string; league: string; out: number | null; age: number | null }[] }
 interface Formation { formation: string; n: number; pct: number }
 interface StyleFit { style: string; conf: number; why: string[] }
 interface StyleResult { primary: StyleFit | null; secondary: StyleFit | null }
@@ -379,18 +379,26 @@ function RolesTab({ makeup, upgrades }: { makeup: RoleSlot[]; upgrades: RoleUpgr
         </div>
       </div>
 
-      {/* upgrade targets */}
+      {/* transfer targets */}
       <div className="lg:col-span-5">
         <div className="mb-2 flex items-baseline justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Opgradér-mål</span>
-          <span className="font-mono text-[10px] text-faint">svageste roller → bedre profiler</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Transfer targets</span>
+          <span className="font-mono text-[10px] text-faint">roller med behov → bedre profiler</span>
         </div>
+        {upgrades.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-line bg-panel/20 px-4 py-8 text-center font-mono text-[11px] leading-relaxed text-faint">
+            ingen oplagte behov<br />truppen er dækket ind på kvalitet og dybde
+          </div>
+        ) : (
         <div className="space-y-2.5">
           {upgrades.map((u) => (
             <div key={u.role} className="rounded-xl border border-line bg-panel/30 p-3">
-              <div className="mb-1 flex items-baseline justify-between">
-                <span className="text-sm font-medium text-fg" title={roleDesc(u.role)}>{u.role}</span>
-                <span className="font-mono text-[10px] text-faint">nu: {u.currentPlayer?.split(" ").slice(-1)[0]} <span style={{ color: outClr(u.currentOut) }}>{u.currentOut}</span></span>
+              <div className="mb-1 flex items-baseline justify-between gap-2">
+                <span className="flex items-baseline gap-1.5 truncate">
+                  <span className="truncate text-sm font-medium text-fg" title={roleDesc(u.role)}>{u.role}</span>
+                  <span className="shrink-0 font-mono text-[8px] uppercase tracking-wider text-clay" title={reasonHint(u.reason)}>{reasonLabel(u.reason)}</span>
+                </span>
+                <span className="shrink-0 font-mono text-[10px] text-faint">nu: {u.currentPlayer?.split(" ").slice(-1)[0]} <span style={{ color: outClr(u.currentOut) }}>{u.currentOut}</span></span>
               </div>
               {u.candidates.length === 0 ? (
                 <div className="py-1 font-mono text-[10px] text-faint">ingen klare opgraderinger</div>
@@ -411,10 +419,15 @@ function RolesTab({ makeup, upgrades }: { makeup: RoleSlot[]; upgrades: RoleUpgr
             </div>
           ))}
         </div>
+        )}
       </div>
     </div>
   );
 }
+
+const reasonLabel = (r: RoleUpgrade["reason"]) => (r === "kvalitet" ? "svag profil" : r === "dybde" ? "tynd trup" : "svag + tynd");
+const reasonHint = (r: RoleUpgrade["reason"]) =>
+  r === "kvalitet" ? "bedste spiller i rollen er under liga-medianen" : r === "dybde" ? "for få spillere på denne kædeposition" : "både svag profil og tynd trup";
 
 function StyleCard({ label, res }: { label: string; res: StyleResult }) {
   if (!res.primary) return null;
