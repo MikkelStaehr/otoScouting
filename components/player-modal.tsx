@@ -25,6 +25,7 @@ interface PlayerDetail {
   key: string; sid: number | null; player: string; team: string; league: string;
   age: number | null; pos: string | null; posGroup: string;
   nation: string | null; minutes: number; out: number | null;
+  seasonTeams: string[] | null;
   heatmap: HeatmapData | null;
   groups: SimGroup[]; similar: SimilarPlayer[];
 }
@@ -118,6 +119,11 @@ export function PlayerModal() {
             {detail && (
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-muted">
                 <span>{detail.team}</span>
+                {detail.seasonTeams && detail.seasonTeams.length > 1 && (
+                  <span className="text-faint" title="Skiftede klub i sæsonen — tal er samlet for hele sæsonen">
+                    (tidl. {detail.seasonTeams.slice(1).join(", ")})
+                  </span>
+                )}
                 <span className="text-faint">·</span>
                 <span>{detail.league.replace("-", " ")}</span>
                 {primaryPos && (

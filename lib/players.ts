@@ -148,6 +148,79 @@ function rawPlayers(league: string, season: string): RawPlayer[] {
     .all(league, season) as unknown as RawPlayer[];
 }
 
+// A mid-season transfer shows up as two FBref rows (one per club). FBref counting
+// stats are split correctly across the stints, but Sofascore serves the WHOLE
+// season on a single row (the current club) — matched onto both stints — so those
+// must be taken once, not summed. Merge = sum FBref counts, take the Sofascore
+// block once, keep identity from the most-minutes club.
+const nmKey = (s: string) =>
+  (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+
+const FB_SUM = [
+  "mp", "starts", "minutes", "goals", "assists", "npg", "pk", "pkatt", "shots", "sot",
+  "interceptions", "tackles_won", "crosses", "fouls", "fouled", "offsides", "yellows", "reds",
+  "gk_saves", "gk_ga", "gk_sota", "gk_clean_sheets", "gk_pk_saved",
+] as const;
+const SOFA_TAKE = [
+  "sofascore_id", "xg", "xa", "gk_goals_prevented", "key_passes", "big_chances_created",
+  "dribbles", "acc_crosses", "tackles", "clearances", "blocks", "ball_recovery",
+  "poss_won_att_third", "aerial_won", "duels_won_pct", "errors", "pass_pct", "passes",
+  "long_balls", "long_ball_pct", "final_third_passes",
+] as const;
+
+function mergeGroup(g: RawPlayer[], sofaTeam: Map<RawPlayer, string | null>): RawPlayer {
+  const byMin = [...g].sort((a, b) => (b.minutes ?? 0) - (a.minutes ?? 0));
+  // Current club = the stint whose team matches the Sofascore row's team (Sofascore
+  // serves the season under the current club); else fall back to most minutes.
+  const current = g.find((p) => {
+    const st = sofaTeam.get(p);
+    return st != null && nmKey(st) === nmKey(p.team);
+  });
+  const primary = current ?? byMin[0]!;
+  const rec = (p: RawPlayer) => p as unknown as Record<string, number | null>;
+  const merged = { ...primary } as unknown as Record<string, unknown>;
+
+  for (const k of FB_SUM) {
+    const vals = g.map((p) => rec(p)[k]);
+    merged[k] = vals.every((v) => v == null) ? null : vals.reduce((s, v) => s! + (v ?? 0), 0);
+  }
+  // Recompute keeper save% from the summed shot totals.
+  const saves = merged.gk_saves as number | null;
+  const sota = merged.gk_sota as number | null;
+  if (saves != null && sota != null && sota > 0) merged.gk_save_pct = (saves / sota) * 100;
+
+  // Sofascore is already whole-season — take it from the stint that carries it.
+  const src = byMin.find((p) => p.sofascore_id != null) ?? primary;
+  for (const k of SOFA_TAKE) merged[k] = rec(src)[k] ?? null;
+
+  merged.team = primary.team;
+  // Current club first, then the others (most minutes first).
+  merged.season_teams = [primary.team, ...byMin.filter((p) => p !== primary).map((p) => p.team)];
+  return merged as unknown as RawPlayer;
+}
+
+/** Collapse same-player transfer stints within one league-season into one row. */
+function mergeStints(rows: RawPlayer[], sofaTeam: Map<RawPlayer, string | null>): RawPlayer[] {
+  const groups = new Map<string, RawPlayer[]>();
+  for (const p of rows) {
+    const k = nmKey(p.player);
+    (groups.get(k) ?? groups.set(k, []).get(k)!).push(p);
+  }
+  const out: RawPlayer[] = [];
+  for (const g of groups.values()) {
+    if (g.length === 1) {
+      out.push(g[0]!);
+      continue;
+    }
+    // Two distinct non-null Sofascore ids → different people who share a name, not
+    // a transfer; keep them separate.
+    const ids = new Set(g.map((p) => p.sofascore_id).filter((x): x is number => x != null));
+    if (ids.size > 1) out.push(...g);
+    else out.push(mergeGroup(g, sofaTeam));
+  }
+  return out;
+}
+
 /** FBref rows for a league-season with Sofascore xG/xA/GP merged in, plus the
  *  Δ-vs-last-snapshot map. The shared prep for both single- and cross-league. */
 function prepareRows(league: string, season: string): {
@@ -155,14 +228,14 @@ function prepareRows(league: string, season: string): {
   deltas: Map<string, Partial<Record<MetricKey, number>>>;
   comparedTo: string | null;
 } {
-  const rows = rawPlayers(league, season);
+  const rawRows = rawPlayers(league, season);
 
   // Merge Sofascore (xG/xA/goals prevented) onto FBref players by name+team.
-  const { map } = matchSofascore(rows, sofascoreRows(league, season));
-  const prev = previousSofascore(league);
-  const deltas = new Map<string, Partial<Record<MetricKey, number>>>();
-  for (const p of rows) {
+  const { map } = matchSofascore(rawRows, sofascoreRows(league, season));
+  const sofaTeam = new Map<RawPlayer, string | null>(); // current club (from Sofascore)
+  for (const p of rawRows) {
     const s = map.get(`${p.team}::${p.player}`);
+    sofaTeam.set(p, s?.team ?? null);
     p.sofascore_id = s?.player_id ?? null;
     p.xg = s?.xg ?? null;
     p.xa = s?.xa ?? null;
@@ -186,17 +259,27 @@ function prepareRows(league: string, season: string): {
     p.long_balls = s?.accurate_long_balls ?? null;
     p.long_ball_pct = s?.long_ball_accuracy_pct ?? null;
     p.final_third_passes = s?.accurate_final_third_passes ?? null;
+  }
 
-    // Δ vs the previous Sofascore snapshot, matched by stable Sofascore id.
-    const pv = s ? prev.byId.get(s.player_id) : undefined;
-    if (s && pv) {
-      const d: Partial<Record<MetricKey, number>> = {};
-      if (s.xg != null && pv.xg != null) d.xg = s.xg - pv.xg;
-      if (s.xa != null && pv.xa != null) d.xa = s.xa - pv.xa;
-      if (s.goals_prevented != null && pv.goals_prevented != null)
-        d.gk_goals_prevented = s.goals_prevented - pv.goals_prevented;
-      deltas.set(`${p.team}::${p.player}`, d);
-    }
+  // Collapse mid-season transfer stints into one season row (after Sofascore is
+  // attached, so grouping can use the stable id and Sofascore is taken once).
+  const rows = mergeStints(rawRows, sofaTeam);
+
+  // Δ vs the previous Sofascore snapshot, matched by stable Sofascore id. Skipped
+  // for merged (multi-club) rows — their summed totals aren't comparable to the
+  // per-club snapshot.
+  const prev = previousSofascore(league);
+  const deltas = new Map<string, Partial<Record<MetricKey, number>>>();
+  for (const p of rows) {
+    if ((p.season_teams?.length ?? 1) > 1 || p.sofascore_id == null) continue;
+    const pv = prev.byId.get(p.sofascore_id);
+    if (!pv) continue;
+    const d: Partial<Record<MetricKey, number>> = {};
+    if (p.xg != null && pv.xg != null) d.xg = p.xg - pv.xg;
+    if (p.xa != null && pv.xa != null) d.xa = p.xa - pv.xa;
+    if (p.gk_goals_prevented != null && pv.goals_prevented != null)
+      d.gk_goals_prevented = p.gk_goals_prevented - pv.goals_prevented;
+    deltas.set(`${p.team}::${p.player}`, d);
   }
   return { rows, deltas, comparedTo: prev.createdAt };
 }

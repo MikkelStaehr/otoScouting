@@ -61,6 +61,9 @@ export interface RawPlayer {
   long_balls: number | null;
   long_ball_pct: number | null;
   final_third_passes: number | null;
+  /** When a player changed club mid-season, the stints are merged into one row;
+   *  this lists the clubs he played for that season (most minutes first). */
+  season_teams?: string[];
 }
 
 /** Stat groups the table is divided into. */

@@ -56,6 +56,7 @@ export interface PlayerDetail {
   nation: string | null;
   minutes: number;
   out: number | null;
+  seasonTeams: string[] | null; // >1 when he changed club mid-season (current first)
   heatmap: Heatmap | null;
   groups: SimGroup[];
   similar: SimilarPlayer[];
@@ -136,6 +137,7 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     nation: target.nation,
     minutes: target.minutes,
     out: target.outputScore == null ? null : Math.round(target.outputScore),
+    seasonTeams: target.season_teams ?? null,
     heatmap: getHeatmap(target.league, target.season, target.sofascore_id),
     groups,
     similar,
