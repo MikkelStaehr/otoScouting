@@ -28,6 +28,7 @@ interface PlayerDetail {
   key: string; sid: number | null; player: string; team: string; league: string;
   age: number | null; pos: string | null; posGroup: string;
   nation: string | null; minutes: number; out: number | null;
+  flat: { label: string; value: number | null; pct?: boolean }[];
   seasonTeams: string[] | null;
   role: RoleResult | null;
   heatmap: HeatmapData | null;
@@ -198,6 +199,20 @@ export function PlayerModal() {
             <div className="py-10 text-center font-mono text-sm text-faint">henter…</div>
           ) : (
             <>
+              {/* flat season totals — plain numbers, position-appropriate */}
+              {detail.flat.length > 0 && (
+                <div className="mb-5 flex flex-wrap gap-2.5">
+                  {detail.flat.map((f) => (
+                    <div key={f.label} className="rounded-xl border border-line bg-panel/30 px-4 py-2">
+                      <div className="tnum text-xl font-bold text-fg">
+                        {f.value == null ? "—" : f.pct ? `${Math.round(f.value)}%` : Number.isInteger(f.value) ? f.value : f.value.toFixed(1)}
+                      </div>
+                      <div className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-faint">{f.label}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-12">
                 {detail.heatmap && (
                   <div className="lg:col-span-5">

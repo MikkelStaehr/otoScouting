@@ -45,6 +45,11 @@ export interface SimilarPlayer {
   pos: string | null;
   sim: number;
 }
+export interface FlatStat {
+  label: string;
+  value: number | null;
+  pct?: boolean; // render as a percentage
+}
 export interface PlayerDetail {
   key: string;
   sid: number | null; // sofascore_id (stable id for watchlists)
@@ -57,6 +62,7 @@ export interface PlayerDetail {
   nation: string | null;
   minutes: number;
   out: number | null;
+  flat: FlatStat[]; // plain season totals (position-appropriate)
   seasonTeams: string[] | null; // >1 when he changed club mid-season (current first)
   role: RoleResult | null; // data-driven role (from positioning + stats)
   heatmap: Heatmap | null;
@@ -139,6 +145,18 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     nation: target.nation,
     minutes: target.minutes,
     out: target.outputScore == null ? null : Math.round(target.outputScore),
+    flat: isGk
+      ? [
+          { label: "Kampe", value: target.mp },
+          { label: "Mål imod", value: target.gk_ga },
+          { label: "Clean sheets", value: target.gk_clean_sheets },
+          { label: "Redning%", value: target.gk_save_pct, pct: true },
+        ]
+      : [
+          { label: "Kampe", value: target.mp },
+          { label: "Mål", value: target.goals },
+          { label: "Assists", value: target.assists },
+        ],
     seasonTeams: target.season_teams ?? null,
     role: classifyRole(
       grp,
