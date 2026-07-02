@@ -246,14 +246,15 @@ export function TeamModal() {
                 </div>
               )}
 
-              {/* metrics (left, stacked) + map card (right) */}
-              <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-12">
-                <div className="space-y-5 lg:col-span-7">
+              {/* metrics (left, stacked) + map card (right) — both capped so the
+                  stacked bars don't stretch the full modal width */}
+              <div className="mt-5 flex flex-col gap-8 lg:flex-row lg:items-start">
+                <div className="w-full space-y-5 lg:max-w-sm lg:flex-1">
                   <MetricGroup title="Offensive nøgletal" metrics={off} of={detail.teamsInLeague} />
                   <MetricGroup title="Defensive nøgletal" metrics={def} of={detail.teamsInLeague} />
                 </div>
 
-                <div className="lg:col-span-5">
+                <div className="w-full lg:w-[340px] lg:shrink-0">
                   {detail.heatmap && (() => {
                     const hasForm = detail.positions.length > 0;
                     const formLabel = hasForm ? "Opstilling" : "Heatmap";

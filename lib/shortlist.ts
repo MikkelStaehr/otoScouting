@@ -28,6 +28,7 @@ export interface ShortlistPlayer {
   pg: string; // position group GK/DF/MF/FW/?
   nat: string | null;
   isGk: boolean;
+  side: "L" | "R" | "C"; // flank he operates on (from heatmap width) — C = central/either
   out: number | null;
   role: string | null; // primary data-driven role
   role2: string | null; // secondary role (or null)
@@ -53,6 +54,14 @@ function dataVersion(): string {
     .join("-");
 }
 
+// Flank from the heatmap width centroid. High cy = left, low cy = right (Sofascore
+// convention); the central band is "either". Used to match a transfer target to the
+// same side as the player he'd replace (a left-back needs a left-back).
+export function sideOf(cy: number | null): "L" | "R" | "C" {
+  if (cy == null) return "C";
+  return cy > 0.56 ? "L" : cy < 0.44 ? "R" : "C";
+}
+
 let cache: { version: string; data: ShortlistData } | null = null;
 
 export function getShortlistData(): ShortlistData {
@@ -66,11 +75,8 @@ export function getShortlistData(): ShortlistData {
     .map((p) => {
       const per90 = p.per90 as unknown as Record<string, number | null>;
       const pct = p.percentile as unknown as Record<string, number | null>;
-      const role = classifyRole(
-        posGroup(p.pos),
-        pct,
-        p.sofascore_id != null ? centroids.get(p.sofascore_id) ?? null : null,
-      );
+      const cen = p.sofascore_id != null ? centroids.get(p.sofascore_id) ?? null : null;
+      const role = classifyRole(posGroup(p.pos), pct, cen);
       return {
         key: `${p.team}::${p.player}`,
         sid: p.sofascore_id ?? null,
@@ -84,6 +90,7 @@ export function getShortlistData(): ShortlistData {
         pg: posGroup(p.pos),
         nat: p.nation ?? null,
         isGk: p.gk_saves != null,
+        side: sideOf(cen?.cy ?? null),
         out: p.outputScore == null ? null : Math.round(p.outputScore),
         role: role.primary?.role ?? null,
         role2: role.secondary?.role ?? null,

@@ -7,7 +7,7 @@
 import { getTeams, getTeamLeagueSeasons } from "./teams.ts";
 import { getTeamWeakness, type ZoneCover } from "./weakness.ts";
 import { getCrossLeaguePlayers } from "./players.ts";
-import { getShortlistData } from "./shortlist.ts";
+import { getShortlistData, sideOf } from "./shortlist.ts";
 import { ROLE_BUCKET, BUCKET_ORDER } from "./role-meta.ts";
 import { getTeamHeatmap, getSquadCentroids, type Heatmap } from "./heatmap.ts";
 import { getTeamFormations, type Formation } from "./formations.ts";
@@ -408,19 +408,18 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
 
     // A role only becomes a transfer target if there's a genuine NEED, not just
     // because it's the weakest slot on the pitch. Two triggers:
-    //   1. QUALITY — the role's best player is below the cross-league median OUT
-    //      (keeper vs. outfield medians kept apart, since they score differently).
+    //   1. QUALITY — the role's best player is below solid-starter level. OUT is a
+    //      0-100 score where ~50 is average, so 60 is a "clearly good starter" bar:
+    //      a 54-56 there is mediocre for an ambitious club and worth upgrading.
     //   2. DEPTH — the position line is thin. Counted from the FULL squad (players
     //      with real minutes), NOT from roles: a club can have 5 CBs in the squad
     //      but only 3 with enough minutes to earn a role.
-    const median = (arr: number[]): number => {
-      if (!arr.length) return 50;
-      const s = [...arr].sort((a, b) => a - b);
-      const m = s.length >> 1;
-      return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
-    };
-    const qualOut = median(sl.players.filter((p) => !p.isGk && p.out != null && (p.min ?? 0) >= 600).map((p) => p.out!));
-    const qualGk = median(sl.players.filter((p) => p.isGk && p.out != null && (p.min ?? 0) >= 600).map((p) => p.out!));
+    const QUAL_BAR = 60;
+
+    // Which side of the pitch each squad player operates on, so a target matches the
+    // flank of the man he'd replace (a left-back needs a left-back).
+    const sideByKey = new Map(positions.map((pl) => [pl.key, sideOf(pl.cy)]));
+    const SIDE_ROLES = new Set(["BACK", "WIDE"]); // buckets where flank matters
 
     // Line depth from the squad (position group), floor at role-qualification minutes.
     // No GK line: a backup keeper rarely logs 450+ league minutes, so every club
@@ -443,21 +442,22 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
 
     const targets: (RoleUpgrade & { need: number })[] = [];
     for (const slot of roleMakeup) {
-      const isGk = slot.bucket === "GK";
-      const qualThresh = isGk ? qualGk : qualOut;
-      const qualGap = slot.bestOut != null && slot.bestOut < qualThresh;
+      const qualGap = slot.bestOut != null && slot.bestOut < QUAL_BAR;
       const line = roleLine(slot.players);
       const thin = line != null && (lineCount[line] ?? 0) < (LINE_MIN[line] ?? 0);
       if (!qualGap && !thin) continue;
       const reason: RoleUpgrade["reason"] = qualGap && thin ? "begge" : qualGap ? "kvalitet" : "dybde";
+      // Match the flank of the incumbent for side-sensitive roles (backs/wide).
+      const side = SIDE_ROLES.has(slot.bucket) ? sideByKey.get(slot.players[0]?.key ?? "") ?? "C" : "C";
       // For a pure depth need, show the best profiles in the role (adding a body);
       // for a quality need, only players clearly above who we already have.
       const cands = (pool.get(slot.role) ?? [])
         .filter((c) => normTeam(c.t) !== nt && (reason === "dybde" || (c.out ?? -1) > (slot.bestOut ?? -1)))
+        .filter((c) => side === "C" || c.side === "C" || c.side === side)
         .slice(0, 5)
         .map((c) => ({ key: c.key, player: c.n, team: c.t, league: c.lg, out: c.out, age: c.age }));
       // Rank by need: quality gaps first (by how far below the bar), then depth.
-      const need = qualGap ? 100 + (qualThresh - (slot.bestOut ?? qualThresh)) : (LINE_MIN[line!] ?? 0) - (lineCount[line!] ?? 0);
+      const need = qualGap ? 100 + (QUAL_BAR - (slot.bestOut ?? QUAL_BAR)) : (LINE_MIN[line!] ?? 0) - (lineCount[line!] ?? 0);
       targets.push({ role: slot.role, currentPlayer: slot.players[0]?.player ?? null, currentOut: slot.bestOut, reason, candidates: cands, need });
     }
     targets.sort((a, b) => b.need - a.need);
