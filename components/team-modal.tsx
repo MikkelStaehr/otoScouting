@@ -265,7 +265,7 @@ export function TeamModal() {
                 <div className="lg:col-span-5">
                   <div className="mb-2 flex items-baseline justify-between">
                     <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Forsvarszoner</span>
-                    <span className="font-mono text-[10px] text-faint">svaghed → upgrade-forslag</span>
+                    <span className="font-mono text-[10px] text-faint">mest brugte back pr. side</span>
                   </div>
                   <div className="space-y-2.5">
                     {detail.zones.map((z) => (
@@ -273,8 +273,7 @@ export function TeamModal() {
                     ))}
                   </div>
                   <p className="mt-2 font-mono text-[10px] leading-relaxed text-faint">
-                    Zonen dækkes af holdets mest brugte back i den side; tal = defensiv
-                    percentil. Opgraderinger er stærkere backs i samme side på tværs af ligaer.
+                    Zonen dækkes af holdets mest brugte back i den side; tal = defensiv percentil.
                   </p>
                 </div>
               </div>
@@ -426,29 +425,6 @@ function Zone({ z, weakest }: { z: ZoneCover; weakest: boolean }) {
             ))}
           </div>
 
-          {z.fits.length > 0 && (
-            <div className="mt-3 border-t border-line/60 pt-2">
-              <div className="mb-1 font-mono text-[9px] uppercase tracking-wider text-volt">Opgraderinger</div>
-              <div className="grid grid-cols-1 gap-0.5 sm:grid-cols-2">
-                {z.fits.slice(0, 4).map((f) => (
-                  <button
-                    key={f.key}
-                    onClick={() => openPlayer(f.key)}
-                    className="flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-panel/60"
-                  >
-                    <Crest team={f.team} />
-                    <span className="min-w-0 flex-1 truncate text-xs text-fg">
-                      {f.player}
-                      <span className="ml-1 font-mono text-[9px] text-faint">
-                        {f.league.slice(0, 3)}{f.age != null && ` · ${f.age}`}
-                      </span>
-                    </span>
-                    <span className="tnum shrink-0 font-mono text-[11px] font-semibold text-volt">{f.strength}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>
