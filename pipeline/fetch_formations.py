@@ -39,11 +39,17 @@ def fetch_league(driver, job):
     driver.get("https://www.sofascore.com/")
 
     def get(url):
+        # .catch so a transient network/Cloudflare blip resolves to null instead of
+        # rejecting (an uncaught rejection fails the whole browser task).
         return driver.run_js(
-            'return fetch("' + url + '").then(function(r){return r.ok?r.text():null;});'
+            'return fetch("' + url + '").then(function(r){return r.ok?r.text():null;})'
+            '.catch(function(){return null;});'
         )
 
-    seasons = json.loads(get(f"{API}/unique-tournament/{job['ut']}/seasons/"))["seasons"]
+    st = get(f"{API}/unique-tournament/{job['ut']}/seasons/")
+    if not st:
+        return {"sid": None, "teams": {}}
+    seasons = json.loads(st)["seasons"]
     sid = next((s["id"] for s in seasons if s["year"] == job["season"]), None)
     if sid is None:
         return {"sid": None, "teams": {}}
@@ -110,8 +116,12 @@ def main() -> int:
         cfg = leagues[lk]
         code = season_code(cfg["sofascoreSeason"])
         print(f"[{lk}] season {cfg['sofascoreSeason']}…", flush=True)
-        out = fetch_league([{"ut": cfg["sofascore"], "season": cfg["sofascoreSeason"]}])[0]
-        teams = out["teams"]
+        try:
+            out = fetch_league([{"ut": cfg["sofascore"], "season": cfg["sofascoreSeason"]}])[0]
+        except Exception as ex:
+            print(f"  fetch failed ({str(ex)[:80]}) — skipping", flush=True)
+            continue
+        teams = (out or {}).get("teams") or {}
         if not teams:
             print("  no formations found — skipping", flush=True)
             continue
