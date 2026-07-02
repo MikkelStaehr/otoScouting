@@ -13,10 +13,14 @@ export interface Dot {
   pos: string | null;
   cx: number;
   cy: number;
+  cxA: number; cyA: number;
+  cxD: number; cyD: number;
   out: number | null;
   minutes: number;
   isGk: boolean;
 }
+
+export type Phase = "all" | "att" | "def";
 
 // OUT → clay (low) · amber (mid) · green (high).
 function outColor(o: number | null): string {
@@ -31,13 +35,17 @@ export function FormationPitch({
   hm,
   dots,
   formation,
+  phase = "all",
   onPick,
 }: {
   hm: PitchGrid | null;
   dots: Dot[];
   formation: string | null;
+  phase?: Phase;
   onPick: (key: string) => void;
 }) {
+  const px = (d: Dot) => (phase === "att" ? d.cxA : phase === "def" ? d.cxD : d.cx);
+  const py = (d: Dot) => (phase === "att" ? d.cyA : phase === "def" ? d.cyD : d.cy);
   const W = 320;
   const H = 208;
   // The typical XI — the 11 most-used players (dots are pre-sorted by minutes).
@@ -76,8 +84,8 @@ export function FormationPitch({
 
       {/* player dots */}
       {shown.map((d) => {
-        const x = d.cx * W;
-        const y = d.cy * H;
+        const x = px(d) * W;
+        const y = py(d) * H;
         const r = 5.5 + (d.minutes / maxMin) * 4;
         return (
           <g key={d.key} onClick={() => onPick(d.key)} style={{ cursor: "pointer" }}>

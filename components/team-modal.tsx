@@ -69,12 +69,14 @@ export function TeamModal() {
   const [detail, setDetail] = useState<TeamReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<"report" | "squad">("report");
+  const [phase, setPhase] = useState<"all" | "att" | "def">("all");
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async (league: string, team: string) => {
     setLoading(true);
     setDetail(null);
     setTab("report");
+    setPhase("all");
     try {
       const res = await fetch(`/api/team?league=${encodeURIComponent(league)}&team=${encodeURIComponent(team)}`);
       const d = (await res.json()) as TeamReport & { error?: string };
@@ -244,20 +246,34 @@ export function TeamModal() {
                       {/* formation + players over the heatmap */}
                       {detail.positions.length > 0 ? (
                         <>
-                          <div className="mb-1.5 flex items-baseline justify-between">
+                          <div className="mb-1.5 flex items-center justify-between gap-2">
                             <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Opstilling & spillere</span>
-                            <span className="font-mono text-[10px] text-faint">gns. position · farve = OUT</span>
+                            <div className="inline-flex overflow-hidden rounded-md border border-line-2">
+                              {([["all", "Samlet"], ["att", "Angreb"], ["def", "Forsvar"]] as const).map(([k, label]) => (
+                                <button
+                                  key={k}
+                                  onClick={() => setPhase(k)}
+                                  className={`px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider transition-colors ${
+                                    phase === k ? "bg-volt text-ink" : "bg-transparent text-muted hover:text-fg"
+                                  }`}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                           <FormationPitch
                             hm={detail.heatmap}
                             dots={detail.positions}
                             formation={detail.formations[0]?.formation ?? null}
+                            phase={phase}
                             onPick={openPlayer}
                           />
                           <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[10px] text-faint">
-                            <span>typisk 11'er (mest spilletid) · prik = gns. position</span>
-                            <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(77,124,90,0.95)" }} /> høj OUT</span>
-                            <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(180,105,74,0.95)" }} /> lav OUT</span>
+                            <span>typisk 11'er · farve = OUT</span>
+                            <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(77,124,90,0.95)" }} /> høj</span>
+                            <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(180,105,74,0.95)" }} /> lav</span>
+                            {phase !== "all" && <span>· {phase === "att" ? "høje" : "dybe"} positioner (afledt af heatmap, ikke ægte possessions-faser)</span>}
                           </p>
                         </>
                       ) : (

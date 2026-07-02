@@ -65,14 +65,22 @@ export function getTeamHeatmap(
   }
 }
 
-/** Per-player heatmap centroids (avg position) for a set of ids — cx = depth
- *  (own goal → attack), cy = width, both 0-1. For the team formation/shape view. */
+export interface SquadCentroid {
+  cx: number; cy: number; // overall avg position (depth 0-1, width 0-1)
+  cxA: number; cyA: number; // attacking: touches weighted toward the forward end
+  cxD: number; cyD: number; // defending: touches weighted toward own end
+}
+
+/** Per-player heatmap centroids (avg position) for a set of ids. Also derives an
+ *  attacking and a defending centroid by weighting each cell by its depth (att) or
+ *  1-depth (def) — a proxy for the high vs. deep shape from the same season heatmap
+ *  (we don't ingest true in/out-of-possession data). */
 export function getSquadCentroids(
   league: string,
   season: string,
   ids: number[],
-): Map<number, { cx: number; cy: number }> {
-  const out = new Map<number, { cx: number; cy: number }>();
+): Map<number, SquadCentroid> {
+  const out = new Map<number, SquadCentroid>();
   if (!ids.length) return out;
   try {
     const rows = getDb()
@@ -84,14 +92,24 @@ export function getSquadCentroids(
     for (const r of rows) {
       const grid = JSON.parse(r.grid) as number[];
       let tot = 0, sx = 0, sy = 0;
+      let totA = 0, sxA = 0, syA = 0;
+      let totD = 0, sxD = 0, syD = 0;
       for (let row = 0; row < r.grid_h; row++)
         for (let col = 0; col < r.grid_w; col++) {
           const v = grid[row * r.grid_w + col] ?? 0;
-          tot += v;
-          sx += ((col + 0.5) / r.grid_w) * v;
-          sy += ((row + 0.5) / r.grid_h) * v;
+          if (v <= 0) continue;
+          const cx = (col + 0.5) / r.grid_w;
+          const cy = (row + 0.5) / r.grid_h;
+          tot += v; sx += cx * v; sy += cy * v;
+          const wa = v * cx; totA += wa; sxA += cx * wa; syA += cy * wa;
+          const wd = v * (1 - cx); totD += wd; sxD += cx * wd; syD += cy * wd;
         }
-      if (tot > 0) out.set(r.player_id, { cx: sx / tot, cy: sy / tot });
+      if (tot > 0)
+        out.set(r.player_id, {
+          cx: sx / tot, cy: sy / tot,
+          cxA: totA > 0 ? sxA / totA : sx / tot, cyA: totA > 0 ? syA / totA : sy / tot,
+          cxD: totD > 0 ? sxD / totD : sx / tot, cyD: totD > 0 ? syD / totD : sy / tot,
+        });
     }
   } catch {
     /* table not built yet */

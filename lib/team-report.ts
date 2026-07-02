@@ -53,6 +53,8 @@ export interface PlayerDot {
   pos: string | null;
   cx: number; // depth 0-1 (own goal → attack)
   cy: number; // width 0-1
+  cxA: number; cyA: number; // attacking shape
+  cxD: number; cyD: number; // defending shape
   out: number | null;
   minutes: number;
   isGk: boolean;
@@ -213,8 +215,9 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
         key: `${p.team}::${p.player}`,
         player: p.player,
         pos: (p.pos ?? "").split(",")[0]?.trim() ?? null,
-        cx: c.cx,
-        cy: c.cy,
+        cx: c.cx, cy: c.cy,
+        cxA: c.cxA, cyA: c.cyA,
+        cxD: c.cxD, cyD: c.cyD,
         out: p.outputScore == null ? null : Math.round(p.outputScore),
         minutes: p.minutes,
         isGk: p.gk_saves != null,
