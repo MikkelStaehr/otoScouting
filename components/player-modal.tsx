@@ -6,6 +6,7 @@ import { teamLogoUrl } from "@/lib/team-logos";
 import { PitchHeatmap, reweightGrid } from "./pitch-heatmap";
 import { ZonePitch } from "./zone-pitch";
 import { WatchlistButton } from "./watchlist";
+import { roleDesc } from "@/lib/role-meta";
 
 const OPEN_EVENT = "otoscout:open-player";
 
@@ -146,14 +147,17 @@ export function PlayerModal() {
             {detail?.role?.primary && (
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span
-                  className="rounded-md border border-volt/40 bg-volt/10 px-2 py-0.5 font-mono text-[11px] text-volt"
-                  title={`Datadrevet rolle (${detail.role.primary.conf}% match) — hvad han faktisk spillede som`}
+                  className="cursor-help rounded-md border border-volt/40 bg-volt/10 px-2 py-0.5 font-mono text-[11px] text-volt"
+                  title={`${detail.role.primary.role} (${detail.role.primary.conf}% match) — ${roleDesc(detail.role.primary.role)}`}
                 >
                   {detail.role.primary.role}
                   <span className="ml-1 text-volt/60">{detail.role.primary.conf}%</span>
                 </span>
                 {detail.role.secondary && (
-                  <span className="rounded-md border border-line-2 px-2 py-0.5 font-mono text-[11px] text-muted">
+                  <span
+                    className="cursor-help rounded-md border border-line-2 px-2 py-0.5 font-mono text-[11px] text-muted"
+                    title={`${detail.role.secondary.role} (${detail.role.secondary.conf}% match) — ${roleDesc(detail.role.secondary.role)}`}
+                  >
                     {detail.role.secondary.role}
                     <span className="ml-1 text-faint">{detail.role.secondary.conf}%</span>
                   </span>
