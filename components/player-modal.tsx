@@ -21,11 +21,14 @@ interface SimilarPlayer {
   age: number | null; pos: string | null; sim: number;
 }
 interface HeatmapData { w: number; h: number; grid: number[]; nPoints: number; matches: number | null }
+interface RoleFit { role: string; conf: number }
+interface RoleResult { bucket: string; primary: RoleFit | null; secondary: RoleFit | null }
 interface PlayerDetail {
   key: string; sid: number | null; player: string; team: string; league: string;
   age: number | null; pos: string | null; posGroup: string;
   nation: string | null; minutes: number; out: number | null;
   seasonTeams: string[] | null;
+  role: RoleResult | null;
   heatmap: HeatmapData | null;
   groups: SimGroup[]; similar: SimilarPlayer[];
 }
@@ -138,6 +141,23 @@ export function PlayerModal() {
                 {detail.age != null && <span>{detail.age} år</span>}
                 <Flag nat={detail.nation} />
                 <span className="text-faint">· {detail.minutes} min.</span>
+              </div>
+            )}
+            {detail?.role?.primary && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span
+                  className="rounded-md border border-volt/40 bg-volt/10 px-2 py-0.5 font-mono text-[11px] text-volt"
+                  title={`Datadrevet rolle (${detail.role.primary.conf}% match) — hvad han faktisk spillede som`}
+                >
+                  {detail.role.primary.role}
+                  <span className="ml-1 text-volt/60">{detail.role.primary.conf}%</span>
+                </span>
+                {detail.role.secondary && (
+                  <span className="rounded-md border border-line-2 px-2 py-0.5 font-mono text-[11px] text-muted">
+                    {detail.role.secondary.role}
+                    <span className="ml-1 text-faint">{detail.role.secondary.conf}%</span>
+                  </span>
+                )}
               </div>
             )}
           </div>

@@ -71,6 +71,28 @@ export interface SquadCentroid {
   cxD: number; cyD: number; // defending: touches weighted toward own end
 }
 
+function computeCentroid(grid: number[], w: number, h: number): SquadCentroid | null {
+  let tot = 0, sx = 0, sy = 0;
+  let totA = 0, sxA = 0, syA = 0;
+  let totD = 0, sxD = 0, syD = 0;
+  for (let row = 0; row < h; row++)
+    for (let col = 0; col < w; col++) {
+      const v = grid[row * w + col] ?? 0;
+      if (v <= 0) continue;
+      const cx = (col + 0.5) / w;
+      const cy = (row + 0.5) / h;
+      tot += v; sx += cx * v; sy += cy * v;
+      const wa = v * cx; totA += wa; sxA += cx * wa; syA += cy * wa;
+      const wd = v * (1 - cx); totD += wd; sxD += cx * wd; syD += cy * wd;
+    }
+  if (tot <= 0) return null;
+  return {
+    cx: sx / tot, cy: sy / tot,
+    cxA: totA > 0 ? sxA / totA : sx / tot, cyA: totA > 0 ? syA / totA : sy / tot,
+    cxD: totD > 0 ? sxD / totD : sx / tot, cyD: totD > 0 ? syD / totD : sy / tot,
+  };
+}
+
 /** Per-player heatmap centroids (avg position) for a set of ids. Also derives an
  *  attacking and a defending centroid by weighting each cell by its depth (att) or
  *  1-depth (def) — a proxy for the high vs. deep shape from the same season heatmap
@@ -90,31 +112,38 @@ export function getSquadCentroids(
       )
       .all(league, season, ...ids) as { player_id: number; grid_w: number; grid_h: number; grid: string }[];
     for (const r of rows) {
-      const grid = JSON.parse(r.grid) as number[];
-      let tot = 0, sx = 0, sy = 0;
-      let totA = 0, sxA = 0, syA = 0;
-      let totD = 0, sxD = 0, syD = 0;
-      for (let row = 0; row < r.grid_h; row++)
-        for (let col = 0; col < r.grid_w; col++) {
-          const v = grid[row * r.grid_w + col] ?? 0;
-          if (v <= 0) continue;
-          const cx = (col + 0.5) / r.grid_w;
-          const cy = (row + 0.5) / r.grid_h;
-          tot += v; sx += cx * v; sy += cy * v;
-          const wa = v * cx; totA += wa; sxA += cx * wa; syA += cy * wa;
-          const wd = v * (1 - cx); totD += wd; sxD += cx * wd; syD += cy * wd;
-        }
-      if (tot > 0)
-        out.set(r.player_id, {
-          cx: sx / tot, cy: sy / tot,
-          cxA: totA > 0 ? sxA / totA : sx / tot, cyA: totA > 0 ? syA / totA : sy / tot,
-          cxD: totD > 0 ? sxD / totD : sx / tot, cyD: totD > 0 ? syD / totD : sy / tot,
-        });
+      const c = computeCentroid(JSON.parse(r.grid) as number[], r.grid_w, r.grid_h);
+      if (c) out.set(r.player_id, c);
     }
   } catch {
     /* table not built yet */
   }
   return out;
+}
+
+let allCentroidsCache: { version: number; map: Map<number, SquadCentroid> } | null = null;
+
+/** Centroids for every player with a heatmap (all leagues), keyed by Sofascore id.
+ *  Cached on the heatmap row count — the input for the role classifier. */
+export function getAllCentroids(): Map<number, SquadCentroid> {
+  const db = getDb();
+  let version = 0;
+  try {
+    version = (db.prepare("SELECT COUNT(*) AS n FROM player_heatmaps").get() as { n: number }).n;
+  } catch {
+    return new Map();
+  }
+  if (allCentroidsCache && allCentroidsCache.version === version) return allCentroidsCache.map;
+  const map = new Map<number, SquadCentroid>();
+  const rows = db
+    .prepare("SELECT player_id, grid_w, grid_h, grid FROM player_heatmaps")
+    .all() as { player_id: number; grid_w: number; grid_h: number; grid: string }[];
+  for (const r of rows) {
+    const c = computeCentroid(JSON.parse(r.grid) as number[], r.grid_w, r.grid_h);
+    if (c) map.set(r.player_id, c);
+  }
+  allCentroidsCache = { version, map };
+  return map;
 }
 
 export function getHeatmap(

@@ -6,7 +6,8 @@
 
 import { getCrossLeaguePlayers } from "./players.ts";
 import { loadModelConfig } from "./model.ts";
-import { getHeatmap, type Heatmap } from "./heatmap.ts";
+import { getHeatmap, getAllCentroids, type Heatmap } from "./heatmap.ts";
+import { classifyRole, type RoleResult } from "./roles.ts";
 import { METRIC_NAME, GROUP_LABEL } from "./metrics.ts";
 import type { EnrichedPlayer, GroupKey, MetricKey } from "./types.ts";
 
@@ -57,6 +58,7 @@ export interface PlayerDetail {
   minutes: number;
   out: number | null;
   seasonTeams: string[] | null; // >1 when he changed club mid-season (current first)
+  role: RoleResult | null; // data-driven role (from positioning + stats)
   heatmap: Heatmap | null;
   groups: SimGroup[];
   similar: SimilarPlayer[];
@@ -138,6 +140,11 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     minutes: target.minutes,
     out: target.outputScore == null ? null : Math.round(target.outputScore),
     seasonTeams: target.season_teams ?? null,
+    role: classifyRole(
+      grp,
+      target.percentile as unknown as Record<string, number | null>,
+      target.sofascore_id != null ? getAllCentroids().get(target.sofascore_id) ?? null : null,
+    ),
     heatmap: getHeatmap(target.league, target.season, target.sofascore_id),
     groups,
     similar,
