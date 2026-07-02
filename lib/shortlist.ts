@@ -6,6 +6,8 @@
 import { statSync } from "node:fs";
 import { join } from "node:path";
 import { getCrossLeaguePlayers } from "./players.ts";
+import { getAllCentroids } from "./heatmap.ts";
+import { classifyRole } from "./roles.ts";
 import { SHORTLIST_METRICS } from "./shortlist-metrics.ts";
 
 const posGroup = (pos: string | null): string => {
@@ -27,6 +29,9 @@ export interface ShortlistPlayer {
   nat: string | null;
   isGk: boolean;
   out: number | null;
+  role: string | null; // primary data-driven role
+  role2: string | null; // secondary role (or null)
+  roleConf: number | null;
   v: Record<string, number | null>; // per-90 / rate display values
   p: Record<string, number | null>; // percentiles (0-100)
 }
@@ -55,11 +60,17 @@ export function getShortlistData(): ShortlistData {
   if (cache && cache.version === version) return cache.data;
 
   const { players } = getCrossLeaguePlayers();
+  const centroids = getAllCentroids();
   const out: ShortlistPlayer[] = players
     .filter((p) => (p.minutes ?? 0) >= 450) // floor so tiny samples don't pollute
     .map((p) => {
       const per90 = p.per90 as unknown as Record<string, number | null>;
       const pct = p.percentile as unknown as Record<string, number | null>;
+      const role = classifyRole(
+        posGroup(p.pos),
+        pct,
+        p.sofascore_id != null ? centroids.get(p.sofascore_id) ?? null : null,
+      );
       return {
         key: `${p.team}::${p.player}`,
         sid: p.sofascore_id ?? null,
@@ -74,6 +85,9 @@ export function getShortlistData(): ShortlistData {
         nat: p.nation ?? null,
         isGk: p.gk_saves != null,
         out: p.outputScore == null ? null : Math.round(p.outputScore),
+        role: role.primary?.role ?? null,
+        role2: role.secondary?.role ?? null,
+        roleConf: role.primary?.conf ?? null,
         v: Object.fromEntries(SHORTLIST_METRICS.map((k) => [k, per90[k] ?? null])),
         p: Object.fromEntries(SHORTLIST_METRICS.map((k) => [k, pct[k] ?? null])),
       };

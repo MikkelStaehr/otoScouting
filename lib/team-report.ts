@@ -9,6 +9,7 @@ import { getTeamWeakness, type ZoneCover } from "./weakness.ts";
 import { getCrossLeaguePlayers } from "./players.ts";
 import { getTeamHeatmap, getSquadCentroids, type Heatmap } from "./heatmap.ts";
 import { getTeamFormations, type Formation } from "./formations.ts";
+import { classifyRole } from "./roles.ts";
 import { normTeam } from "./merge.ts";
 import { TEAM_METRICS } from "./team-metrics.ts";
 import type { EnrichedTeam, EnrichedPlayer, MetricKey } from "./types.ts";
@@ -34,6 +35,7 @@ export interface SquadRow {
   player: string;
   pos: string | null;
   nation: string | null;
+  role: string | null; // data-driven role
   mp: number;
   minutes: number;
   out: number | null; // output score (null for keepers)
@@ -58,6 +60,7 @@ export interface PlayerDot {
   out: number | null;
   minutes: number;
   isGk: boolean;
+  role: string | null; // data-driven role
 }
 
 export interface TeamReport {
@@ -156,6 +159,11 @@ function buildSquad(league: string, teamName: string, players: EnrichedPlayer[])
   const mine = players.filter(
     (p) => p.league === league && p.team === teamName && (p.minutes ?? 0) > 0,
   );
+  const centroids = getSquadCentroids(
+    league,
+    mine[0]?.season ?? "",
+    mine.map((p) => p.sofascore_id).filter((x): x is number => x != null),
+  );
   const groups: SquadGroup[] = [];
   for (const g of GROUP_ORDER) {
     const cols = SQUAD_COLS[g]!;
@@ -167,6 +175,11 @@ function buildSquad(league: string, teamName: string, players: EnrichedPlayer[])
         player: p.player,
         pos: (p.pos ?? "").split(",")[0]?.trim() ?? null,
         nation: p.nation ?? null,
+        role: classifyRole(
+          posGroupOf(p.pos),
+          p.percentile as unknown as Record<string, number | null>,
+          p.sofascore_id != null ? centroids.get(p.sofascore_id) ?? null : null,
+        ).primary?.role ?? null,
         mp: p.mp,
         minutes: p.minutes,
         out: p.outputScore == null ? null : Math.round(p.outputScore),
@@ -221,6 +234,7 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
         out: p.outputScore == null ? null : Math.round(p.outputScore),
         minutes: p.minutes,
         isGk: p.gk_saves != null,
+        role: classifyRole(posGroupOf(p.pos), p.percentile as unknown as Record<string, number | null>, c).primary?.role ?? null,
       };
     })
     .sort((a, b) => b.minutes - a.minutes);

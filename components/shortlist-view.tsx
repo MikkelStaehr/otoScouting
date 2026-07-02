@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ShortlistPlayer } from "@/lib/shortlist";
 import { SHORTLIST_GROUPS, SIM_KEYS, RATE_METRICS } from "@/lib/shortlist-metrics";
+import { ROLE_GROUPS, roleDesc } from "@/lib/role-meta";
 import { METRIC_NAME } from "@/lib/metrics";
 import type { MetricKey } from "@/lib/types";
 import { flagUrl } from "@/lib/flags";
@@ -48,6 +49,7 @@ export function ShortlistView({ players, leagues }: { players: ShortlistPlayer[]
   const [minMin, setMinMin] = useState(900);
   const [league, setLeague] = useState("ALL");
   const [reqs, setReqs] = useState<Req[]>([]);
+  const [role, setRole] = useState("ALL");
   const [tplKey, setTplKey] = useState<string | null>(null);
   const [tplQuery, setTplQuery] = useState("");
   const [sortBy, setSortBy] = useState<"auto" | "out" | "match" | "sim">("auto");
@@ -70,6 +72,7 @@ export function ShortlistView({ players, leagues }: { players: ShortlistPlayer[]
     const scored = players
       .filter((p) => {
         if (pg !== "ALL" && p.pg !== pg) return false;
+        if (role !== "ALL" && p.role !== role && p.role2 !== role) return false;
         if (p.age != null && p.age > ageMax) return false;
         if (p.min < minMin) return false;
         if (league !== "ALL" && p.lg !== league) return false;
@@ -89,7 +92,7 @@ export function ShortlistView({ players, leagues }: { players: ShortlistPlayer[]
       return (b.p.out ?? -1) - (a.p.out ?? -1);
     });
     return scored;
-  }, [players, pg, ageMax, minMin, league, reqs, template, effectiveSort]);
+  }, [players, pg, role, ageMax, minMin, league, reqs, template, effectiveSort]);
 
   const shown = results.slice(0, 100);
 
@@ -130,6 +133,18 @@ export function ShortlistView({ players, leagues }: { players: ShortlistPlayer[]
                   ))}
                 </select>
               </Field>
+              <Field label="Rolle">
+                <select value={role} onChange={(e) => setRole(e.target.value)} className={FILT}>
+                  <option value="ALL">Alle roller</option>
+                  {ROLE_GROUPS.map((g) => (
+                    <optgroup key={g.bucket} label={g.label}>
+                      {g.roles.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </Field>
               <Field label="Liga">
                 <select value={league} onChange={(e) => setLeague(e.target.value)} className={FILT}>
                   <option value="ALL">Alle ligaer</option>
@@ -153,6 +168,12 @@ export function ShortlistView({ players, leagues }: { players: ShortlistPlayer[]
                 </select>
               </Field>
             </div>
+
+            {role !== "ALL" && (
+              <p className="font-mono text-[11px] text-faint">
+                <span className="text-muted">{role}</span> — {roleDesc(role)}
+              </p>
+            )}
 
             {/* stat requirements */}
             <div className="border-t border-line/60 pt-3">
@@ -247,6 +268,7 @@ export function ShortlistView({ players, leagues }: { players: ShortlistPlayer[]
                   <Th>#</Th>
                   <Th left>Spiller</Th>
                   <Th left>Klub</Th>
+                  <Th left>Rolle</Th>
                   <Th>Liga</Th>
                   <Th>Alder</Th>
                   <Th>Kampe</Th>
@@ -279,6 +301,16 @@ export function ShortlistView({ players, leagues }: { players: ShortlistPlayer[]
                           <span className="truncate text-muted">{p.t}</span>
                         </div>
                       </td>
+                      <td className="whitespace-nowrap px-3 py-1.5">
+                        {p.role ? (
+                          <span className="cursor-help font-mono text-[11px] text-fg" title={roleDesc(p.role)}>
+                            {p.role}
+                            {p.roleConf != null && <span className="ml-1 text-faint">{p.roleConf}%</span>}
+                          </span>
+                        ) : (
+                          <span className="text-faint">—</span>
+                        )}
+                      </td>
                       <td className="px-2 py-1.5 text-center font-mono text-[10px] text-faint">{LG(p.lg)}</td>
                       <td className="px-2 py-1.5 text-right tnum text-muted">{p.age ?? "—"}</td>
                       <td className="px-2 py-1.5 text-right leading-tight">
@@ -301,7 +333,7 @@ export function ShortlistView({ players, leagues }: { players: ShortlistPlayer[]
                   );
                 })}
                 {shown.length === 0 && (
-                  <tr><td colSpan={9 + reqs.length} className="px-3 py-10 text-center font-mono text-sm text-faint">Ingen spillere matcher — løsn kravene.</td></tr>
+                  <tr><td colSpan={10 + reqs.length} className="px-3 py-10 text-center font-mono text-sm text-faint">Ingen spillere matcher — løsn kravene.</td></tr>
                 )}
               </tbody>
             </table>

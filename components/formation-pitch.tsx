@@ -18,6 +18,7 @@ export interface Dot {
   out: number | null;
   minutes: number;
   isGk: boolean;
+  role: string | null;
 }
 
 export type Phase = "all" | "att" | "def";
@@ -89,6 +90,7 @@ export function FormationPitch({
         const r = 5.5 + (d.minutes / maxMin) * 4;
         return (
           <g key={d.key} onClick={() => onPick(d.key)} style={{ cursor: "pointer" }}>
+            <title>{d.player}{d.role ? ` — ${d.role}` : ""}</title>
             <circle cx={x} cy={y} r={r} fill={outColor(d.out)} stroke="var(--color-ink)" strokeWidth={1} />
             <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fill="var(--color-ink)" style={{ fontSize: 8, fontWeight: 700, fontFamily: "ui-monospace, monospace", pointerEvents: "none" }}>
               {d.out ?? ""}

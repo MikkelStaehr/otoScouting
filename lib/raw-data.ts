@@ -5,6 +5,13 @@
 import { statSync } from "node:fs";
 import { join } from "node:path";
 import { getCrossLeaguePlayers } from "./players.ts";
+import { getAllCentroids } from "./heatmap.ts";
+import { classifyRole } from "./roles.ts";
+
+const pgOf = (pos: string | null): string => {
+  const t = (pos ?? "").split(",")[0]?.trim() ?? "";
+  return ["GK", "DF", "MF", "FW"].includes(t) ? t : "?";
+};
 
 export interface RawColumn {
   key: string;
@@ -19,6 +26,7 @@ const COLS: RawColumn[] = [
   { key: "league", label: "Liga", num: false },
   { key: "season_label", label: "Sæson", num: false },
   { key: "pos", label: "Pos", num: false },
+  { key: "role", label: "Rolle", num: false },
   { key: "nation", label: "Nat", num: false },
   { key: "age", label: "Alder", num: true },
   { key: "mp", label: "Kampe", num: true },
@@ -77,12 +85,19 @@ export function getRawData(): RawData {
   if (cache && cache.version === version) return cache.data;
 
   const { players } = getCrossLeaguePlayers();
+  const centroids = getAllCentroids();
   const keys: string[] = [];
   const rows = players.map((p) => {
     const rec = p as unknown as Record<string, number | string | null>;
     keys.push(`${p.team}::${p.player}`);
+    const role = classifyRole(
+      pgOf(p.pos),
+      p.percentile as unknown as Record<string, number | null>,
+      p.sofascore_id != null ? centroids.get(p.sofascore_id) ?? null : null,
+    ).primary?.role ?? null;
     return COLS.map((c) => {
       if (c.key === "out") return p.outputScore == null ? null : Math.round(p.outputScore);
+      if (c.key === "role") return role;
       const v = rec[c.key];
       return v === undefined ? null : v;
     });

@@ -7,6 +7,7 @@ import { openPlayer } from "./player-modal";
 import { PitchHeatmap } from "./pitch-heatmap";
 import { ZonePitch } from "./zone-pitch";
 import { FormationPitch, type Dot } from "./formation-pitch";
+import { roleDesc } from "@/lib/role-meta";
 
 const OPEN_EVENT = "otoscout:open-team";
 
@@ -31,7 +32,7 @@ interface MetricReport {
 }
 interface SquadCol { key: string; label: string; rate: boolean }
 interface SquadRow {
-  key: string; player: string; pos: string | null; nation: string | null;
+  key: string; player: string; pos: string | null; nation: string | null; role: string | null;
   mp: number; minutes: number; out: number | null;
   values: (number | null)[]; pcts: (number | null)[];
 }
@@ -490,6 +491,7 @@ function SquadTable({ g }: { g: SquadGroup }) {
             <th className="px-3 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.15em] text-volt">
               {g.label}
             </th>
+            <th className="px-2 py-1.5 text-left font-mono text-[10px] uppercase tracking-wider text-faint">Rolle</th>
             <th className="px-2 py-1.5 text-right font-mono text-[10px] uppercase leading-tight tracking-wider text-faint" title="Kampe · minutter pr. kamp">
               Kampe<br />min/k
             </th>
@@ -518,6 +520,13 @@ function SquadTable({ g }: { g: SquadGroup }) {
                     </button>
                     {r.pos && <span className="font-mono text-[9px] text-faint">{r.pos}</span>}
                   </div>
+                </td>
+                <td className="whitespace-nowrap px-2 py-1.5">
+                  {r.role ? (
+                    <span className="cursor-help font-mono text-[10px] text-muted" title={roleDesc(r.role)}>{r.role}</span>
+                  ) : (
+                    <span className="text-faint">—</span>
+                  )}
                 </td>
                 <td className="px-2 py-1.5 text-right leading-tight">
                   <div className="tnum text-muted">{r.mp}</div>

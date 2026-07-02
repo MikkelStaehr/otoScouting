@@ -36,3 +36,14 @@ export const ROLE_DESC: Record<string, string> = {
 };
 
 export const roleDesc = (role: string | null | undefined) => (role ? ROLE_DESC[role] ?? "" : "");
+
+// Roles grouped by line — the order/structure for the role filter dropdown.
+export const ROLE_GROUPS: { bucket: string; label: string; roles: string[] }[] = [
+  { bucket: "GK", label: "Målmænd", roles: ["Shot-Stopper", "Ball-Playing GK", "Sweeper Keeper", "No-Nonsense GK"] },
+  { bucket: "CB", label: "Midterforsvar", roles: ["Ball-Playing CB", "No-Nonsense CB", "Stopper", "Wide CB", "Aggressive CB"] },
+  { bucket: "BACK", label: "Backer", roles: ["Attacking Wing-Back", "Holding Full-Back", "Inverted Full-Back", "Pressing Full-Back"] },
+  { bucket: "MID", label: "Central midtbane", roles: ["Anchor", "Deep-Lying Playmaker", "Box-to-Box", "Advanced Playmaker"] },
+  { bucket: "WIDE", label: "Kant", roles: ["Winger", "Inside Forward", "Wide Playmaker"] },
+  { bucket: "STRIKER", label: "Angreb", roles: ["Poacher", "Target Forward", "Deep-Lying Forward", "Complete Forward"] },
+];
+
