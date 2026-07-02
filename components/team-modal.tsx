@@ -77,6 +77,7 @@ export function TeamModal() {
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<"report" | "squad" | "roles">("report");
   const [phase, setPhase] = useState<"all" | "att" | "def">("all");
+  const [mapView, setMapView] = useState<"form" | "zone">("form");
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async (league: string, team: string) => {
@@ -245,23 +246,35 @@ export function TeamModal() {
                 </div>
               )}
 
-              {/* metrics (left) + formation & zone (right) */}
+              {/* metrics (left, stacked) + map card (right) */}
               <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-12">
-                <div className="lg:col-span-7">
-                  <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                    <MetricGroup title="Offensive nøgletal" metrics={off} of={detail.teamsInLeague} />
-                    <MetricGroup title="Defensive nøgletal" metrics={def} of={detail.teamsInLeague} />
-                  </div>
+                <div className="space-y-5 lg:col-span-7">
+                  <MetricGroup title="Offensive nøgletal" metrics={off} of={detail.teamsInLeague} />
+                  <MetricGroup title="Defensive nøgletal" metrics={def} of={detail.teamsInLeague} />
                 </div>
 
                 <div className="lg:col-span-5">
-                  {detail.heatmap && (
-                    <div>
-                      {/* formation + players over the heatmap */}
-                      {detail.positions.length > 0 ? (
-                        <>
-                          <div className="mb-1.5 flex items-center justify-between gap-2">
-                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Opstilling & spillere</span>
+                  {detail.heatmap && (() => {
+                    const hasForm = detail.positions.length > 0;
+                    const formLabel = hasForm ? "Opstilling" : "Heatmap";
+                    return (
+                      <div>
+                        {/* view toggle (opstilling ↔ zoner) + phase toggle when relevant */}
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                          <div className="inline-flex overflow-hidden rounded-md border border-line-2">
+                            {([["form", formLabel], ["zone", "Zoner"]] as const).map(([k, label]) => (
+                              <button
+                                key={k}
+                                onClick={() => setMapView(k)}
+                                className={`px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-wider transition-colors ${
+                                  mapView === k ? "bg-volt text-ink" : "bg-transparent text-muted hover:text-fg"
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                          {mapView === "form" && hasForm && (
                             <div className="inline-flex overflow-hidden rounded-md border border-line-2">
                               {([["all", "Samlet"], ["att", "Angreb"], ["def", "Forsvar"]] as const).map(([k, label]) => (
                                 <button
@@ -275,46 +288,45 @@ export function TeamModal() {
                                 </button>
                               ))}
                             </div>
-                          </div>
-                          <FormationPitch
-                            hm={detail.heatmap}
-                            dots={detail.positions}
-                            formation={detail.formations[0]?.formation ?? null}
-                            phase={phase}
-                            onPick={openPlayer}
-                          />
-                          <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[10px] text-faint">
-                            <span>typisk 11'er · farve = OUT</span>
-                            <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(77,124,90,0.95)" }} /> høj</span>
-                            <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(180,105,74,0.95)" }} /> lav</span>
-                            {phase !== "all" && <span>· {phase === "att" ? "høje" : "dybe"} positioner (afledt af heatmap, ikke ægte possessions-faser)</span>}
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <div className="mb-1.5 flex items-baseline justify-between">
-                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Holdets heatmap</span>
-                            <span className="font-mono text-[10px] text-faint">hvor holdet opererer</span>
-                          </div>
-                          <PitchHeatmap hm={detail.heatmap} id="team-hm" />
-                          <p className="mt-1.5 font-mono text-[10px] text-faint">
-                            markspillernes sæson-heatmaps lagt sammen, vægtet efter spilletid
-                          </p>
-                        </>
-                      )}
-
-                      <div className="mt-4">
-                        <div className="mb-1.5 flex items-baseline justify-between">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Zoneanalyse</span>
-                          <span className="font-mono text-[10px] text-faint">andel af aktivitet pr. zone</span>
+                          )}
                         </div>
-                        <ZonePitch hm={detail.heatmap} id="team-zone" />
-                        <p className="mt-1.5 font-mono text-[10px] leading-relaxed text-faint">
-                          Banen delt i 3×3 zoner; tal = andel af holdets samlede aktivitet i hver zone.
-                        </p>
+
+                        {mapView === "form" ? (
+                          hasForm ? (
+                            <>
+                              <FormationPitch
+                                hm={detail.heatmap}
+                                dots={detail.positions}
+                                formation={detail.formations[0]?.formation ?? null}
+                                phase={phase}
+                                onPick={openPlayer}
+                              />
+                              <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[10px] text-faint">
+                                <span>typisk 11'er · farve = OUT</span>
+                                <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(77,124,90,0.95)" }} /> høj</span>
+                                <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(180,105,74,0.95)" }} /> lav</span>
+                                {phase !== "all" && <span>· {phase === "att" ? "høje" : "dybe"} positioner (afledt af heatmap, ikke ægte possessions-faser)</span>}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <PitchHeatmap hm={detail.heatmap} id="team-hm" />
+                              <p className="mt-1.5 font-mono text-[10px] text-faint">
+                                markspillernes sæson-heatmaps lagt sammen, vægtet efter spilletid
+                              </p>
+                            </>
+                          )
+                        ) : (
+                          <>
+                            <ZonePitch hm={detail.heatmap} id="team-zone" />
+                            <p className="mt-1.5 font-mono text-[10px] leading-relaxed text-faint">
+                              Banen delt i 3×3 zoner; tal = andel af holdets samlede aktivitet i hver zone.
+                            </p>
+                          </>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
             </>
