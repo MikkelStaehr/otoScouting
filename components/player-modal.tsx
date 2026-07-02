@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flagUrl } from "@/lib/flags";
 import { teamLogoUrl } from "@/lib/team-logos";
-import { PitchHeatmap } from "./pitch-heatmap";
+import { PitchHeatmap, reweightGrid } from "./pitch-heatmap";
 import { ZonePitch } from "./zone-pitch";
 import { WatchlistButton } from "./watchlist";
 
@@ -41,10 +41,16 @@ export function PlayerModal() {
   const [visible, setVisible] = useState(false);
   const [detail, setDetail] = useState<PlayerDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hmPhase, setHmPhase] = useState<"all" | "att" | "def">("all");
   const bodyRef = useRef<HTMLDivElement>(null);
+  const hmGrid = useMemo(
+    () => (detail?.heatmap ? reweightGrid(detail.heatmap, hmPhase) : null),
+    [detail?.heatmap, hmPhase],
+  );
 
   const load = useCallback(async (key: string) => {
     setLoading(true);
+    setHmPhase("all");
     try {
       const res = await fetch(`/api/player?key=${encodeURIComponent(key)}`);
       const d = (await res.json()) as PlayerDetail & { error?: string };
@@ -166,15 +172,30 @@ export function PlayerModal() {
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-12">
                 {detail.heatmap && (
                   <div className="lg:col-span-5">
-                    <div className="mb-1.5 flex items-baseline justify-between">
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
                       <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">
                         Heatmap
                       </span>
-                      <span className="font-mono text-[10px] text-faint">
-                        {detail.heatmap.matches != null && `${detail.heatmap.matches} kampe`}
-                      </span>
+                      <div className="inline-flex overflow-hidden rounded-md border border-line-2">
+                        {([["all", "Samlet"], ["att", "Angreb"], ["def", "Forsvar"]] as const).map(([k, label]) => (
+                          <button
+                            key={k}
+                            onClick={() => setHmPhase(k)}
+                            className={`px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider transition-colors ${
+                              hmPhase === k ? "bg-volt text-ink" : "bg-transparent text-muted hover:text-fg"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <PitchHeatmap hm={detail.heatmap} id="player-hm" />
+                    <PitchHeatmap hm={hmGrid ?? detail.heatmap} id="player-hm" />
+                    {hmPhase !== "all" && (
+                      <p className="mt-1 font-mono text-[10px] text-faint">
+                        {hmPhase === "att" ? "høje" : "dybe"} berøringer fremhævet (afledt af heatmap, ikke ægte possessions-faser)
+                      </p>
+                    )}
 
                     <div className="mt-4">
                       <div className="mb-1.5 flex items-baseline justify-between">

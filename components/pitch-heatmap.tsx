@@ -10,6 +10,25 @@ export interface PitchGrid {
   grid: number[];
 }
 
+/** Re-weight a heatmap toward the forward end (attacking) or own end (defending)
+ *  by scaling each cell by its depth, then renormalise. A proxy for the high vs.
+ *  deep phase from the same season heatmap — not true in/out-of-possession data. */
+export function reweightGrid(hm: PitchGrid, phase: "all" | "att" | "def"): PitchGrid {
+  if (phase === "all") return hm;
+  const out = new Array(hm.grid.length).fill(0);
+  let max = 0;
+  for (let row = 0; row < hm.h; row++)
+    for (let col = 0; col < hm.w; col++) {
+      const i = row * hm.w + col;
+      const depth = (col + 0.5) / hm.w;
+      const v = (hm.grid[i] ?? 0) * (phase === "att" ? depth : 1 - depth);
+      out[i] = v;
+      if (v > max) max = v;
+    }
+  const m = max || 1;
+  return { w: hm.w, h: hm.h, grid: out.map((v) => v / m) };
+}
+
 // Warm heat ramp (pale → amber → clay → deep red) — reads clearly on the light
 // panel and stays on-brand instead of a single flat orange.
 const HEAT_STOPS: [number, [number, number, number, number]][] = [
