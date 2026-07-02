@@ -24,6 +24,9 @@ __pycache__/
 /.cache/
 /downloaded_files/
 /output/
+/pipeline/downloaded_files/
+/pipeline/output/
+/pipeline/.cache/
 
 # SQLite WAL sidecar files (WAL mode; the DB itself is /scouting.db above)
 /scouting.db-shm

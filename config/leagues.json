@@ -199,6 +199,97 @@
       "espn": "isl.1",
       "strength": 0.72,
       "avgElo": null
+    },
+    "FRA-Ligue2": {
+      "sofascore": 182,
+      "sofascoreSeason": "25/26",
+      "fbref": "Ligue 2",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "FRA",
+      "clubeloLevel": 2,
+      "espn": "fra.2",
+      "strength": 0.95,
+      "avgElo": null
+    },
+    "ESP-Segunda": {
+      "sofascore": 54,
+      "sofascoreSeason": "25/26",
+      "fbref": "Spanish Segunda División",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "ESP",
+      "clubeloLevel": 2,
+      "espn": "esp.2",
+      "strength": 0.95,
+      "avgElo": null
+    },
+    "ITA-SerieB": {
+      "sofascore": 53,
+      "sofascoreSeason": "25/26",
+      "fbref": "Serie B (M)",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "ITA",
+      "clubeloLevel": 2,
+      "espn": "ita.2",
+      "strength": 0.93,
+      "avgElo": null
+    },
+    "TUR-SuperLig": {
+      "sofascore": 52,
+      "sofascoreSeason": "25/26",
+      "fbref": "Süper Lig",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "TUR",
+      "clubeloLevel": 1,
+      "espn": "tur.1",
+      "strength": 0.95,
+      "avgElo": null
+    },
+    "UKR-PremierLiga": {
+      "sofascore": 218,
+      "sofascoreSeason": "25/26",
+      "fbref": "Ukrainian Premier League",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Jul",
+      "seasonEnd": "May",
+      "clubelo": "UKR",
+      "clubeloLevel": 1,
+      "espn": "ukr.1",
+      "strength": 0.9,
+      "avgElo": null
+    },
+    "BUL-ParvaLiga": {
+      "sofascore": 247,
+      "sofascoreSeason": "25/26",
+      "fbref": "First Professional Football League",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Jul",
+      "seasonEnd": "May",
+      "clubelo": "BUL",
+      "clubeloLevel": 1,
+      "espn": "bul.1",
+      "strength": 0.82,
+      "avgElo": null
+    },
+    "POR-LigaPortugal2": {
+      "sofascore": 239,
+      "sofascoreSeason": "25/26",
+      "fbref": "Liga Portugal 2",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "POR",
+      "clubeloLevel": 2,
+      "espn": "por.2",
+      "strength": 0.88,
+      "avgElo": null
     }
   }
 }

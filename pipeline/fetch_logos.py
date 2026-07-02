@@ -46,7 +46,7 @@ FBREF_ALIAS: dict[str, int] = {
 
 def norm(team: str) -> str:
     """Mirror lib/team-logos.ts norm() so keys match at lookup time."""
-    t = team.lower().replace("ø", "o").replace("æ", "ae").replace("å", "a")
+    t = team.lower().replace("ø", "o").replace("æ", "ae").replace("å", "a").replace("ı", "i")
     t = "".join(c for c in unicodedata.normalize("NFD", t) if not unicodedata.combining(c))
     t = re.sub(r"[^a-z\s]", " ", t)
     t = re.sub(r"\b(fc|if|bk|sk|ik|ob|ff|boldklub|fodbold)\b", " ", t)

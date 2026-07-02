@@ -18,6 +18,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   tilføje ligaer (fundament før skalering til ~18 ligaer)
 - **[2026-07-01](2026-07-01-scouting-buildout.md)** — Fra fundament til værktøj:
   16 ligaer i drift, dashboard, forsvars/skabelses-data, spiller-similaritet, logoer
+- **[2026-07-02](2026-07-02-liga-udvidelse-og-espn-logoer.md)** — Liga-udvidelse
+  16→23 (EU 2. divisioner + østeuropæisk dybde) + ESPN-logo-fallback
 
 ## Tidslinje (kort)
 
@@ -32,4 +34,7 @@ med FBref som eneste kilde. Det er siden vokset:
 4. **Hold-view** — team-performance (Hold) ved siden af Spillere, med afledt hold-xG.
 5. **Multi-liga** — Superliga + Allsvenskan + Eliteserien. Hold først, så spillere.
 6. **Multi-liga spillere** — spillere i alle 3 ligaer, kun aktuel sæson, dynamisk header.
-7. **(seneste)** — cross-league sammenligning med ligastyrke-justering (Elo).
+7. **Cross-league** — sammenligning med ligastyrke-justering (Elo).
+8. **(seneste)** — udvidelse mod 23 ligaer (EU 2. divisioner + østeuropæisk dybde);
+   FBref-rygrad landede for 6, Sofascore-laget venter på en Cloudflare-blok; ESPN-
+   logo-fallback bygget som robusthed imens.
