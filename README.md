@@ -42,24 +42,49 @@ except the manual Python fetch.
 ### 1. Build the database (Python)
 
 soccerdata drives a headless Chrome under the hood, so **Chrome must be
-installed**. The project lives in a deep OneDrive path, and Windows venvs created
-*inside* it hit the long-path limit — **create the venv at a short path outside
-the project**:
+installed**. Create the venv at a short path **outside the project** (on Windows,
+deep OneDrive paths hit the venv long-path limit). Use Python 3.12 — 3.9 is too
+old for the pinned deps.
+
+**macOS / Linux:**
 
 ```bash
-py -m venv ~/otoscout-venv
-~/otoscout-venv/Scripts/python -m pip install -r pipeline/requirements.txt
+python3.12 -m venv ~/otoscout-venv
+~/otoscout-venv/bin/python -m pip install -r pipeline/requirements.txt
 
-# Danish Superliga 2025/26 (fetch.py auto-registers the league with soccerdata)
-~/otoscout-venv/Scripts/python pipeline/fetch.py --league DEN-Superliga --season 2025-2026
+# Sofascore — all leagues, fast (~30s), no browser. Run this first: it creates scouting.db.
+~/otoscout-venv/bin/python pipeline/fetch_sofascore.py
+
+# FBref — one call per league, slow (~10 min total, drives Chrome). Builds the players table.
+# fetch.py auto-registers the Nordic leagues with soccerdata on first run.
+~/otoscout-venv/bin/python pipeline/fetch.py --league DEN-Superliga   --season 2025-2026
+~/otoscout-venv/bin/python pipeline/fetch.py --league SWE-Allsvenskan --season 2026
+~/otoscout-venv/bin/python pipeline/fetch.py --league NOR-Eliteserien --season 2026
 ```
 
-First run scrapes FBref (slow — cold browser + rate limit); re-runs hit
-soccerdata's local cache.
+**Windows:** swap `~/otoscout-venv/bin/python` for `~/otoscout-venv/Scripts/python`
+and use `py -m venv ~/otoscout-venv`.
 
-### 2. Run the app (Node ≥ 22 for `node:sqlite`)
+First FBref run scrapes from cold (slow — cold browser + rate limit); re-runs hit
+soccerdata's local cache. Let each fetch finish — a killed FBref run leaves the
+`players` table uncreated, and the app then errors with `no such table: players`.
+
+> **Custom-league gotcha:** the Nordic leagues aren't built into soccerdata, so
+> `fetch.py` registers them in `~/soccerdata/config/league_dict.json`. soccerdata
+> reads that file at *import* time, so the very first run after a fresh install
+> may fail with `Invalid league` — just run it again and it works.
+
+### 2. Run the app (Node 24+ recommended)
+
+`lib/db.ts` uses the built-in `node:sqlite` module (no native dependency). That
+module is **stable without a flag only on Node 24+**. On Node 22 it exists but is
+experimental — you must pass `--experimental-sqlite` (e.g.
+`NODE_OPTIONS=--experimental-sqlite npm run dev`). On Node 20 and earlier it does
+not exist at all (`No such built-in module: node:sqlite`). A `.nvmrc` pins Node 24
+— run `nvm use` in the project to pick it up.
 
 ```bash
+nvm use            # selects Node 24 from .nvmrc
 npm install
 npm run dev        # http://localhost:3000 — ⌘K to find a player
 ```

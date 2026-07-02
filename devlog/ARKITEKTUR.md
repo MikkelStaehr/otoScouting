@@ -275,6 +275,13 @@ npx next dev -p 3000
 
 ## 13. Udviklings-gotchas (samlet)
 
+- **Node 24+ til `node:sqlite`** — modulet er stabilt uden flag først fra Node 24.
+  På Node 22 findes det men er eksperimentelt (`NODE_OPTIONS=--experimental-sqlite`);
+  på Node 20 findes det slet ikke (`No such built-in module: node:sqlite`). En
+  `.nvmrc` pinner Node 24 — kør `nvm use` i projektet.
+- **Kør FBref-fetchen færdig** — bliver `fetch.py` afbrudt før den skriver, findes
+  `players`-tabellen ikke, og appen fejler med `no such table: players`. (Sofascore
+  laver kun `sofascore_*`-tabellerne.)
 - **Kør aldrig `npm run build` mens dev-serveren kører** — det korrumperer `.next`.
   Brug `npx tsc --noEmit` til typecheck i stedet.
 - **Pin porten** (`-p 3000`) — ellers hopper dev-serveren til en ny port hver gang.
