@@ -216,8 +216,13 @@ export function TeamModal() {
               {/* metrics + zones */}
               <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12">
                 <div className="lg:col-span-7">
+                  <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                    <MetricGroup title="Offensive nøgletal" metrics={off} of={detail.teamsInLeague} />
+                    <MetricGroup title="Defensive nøgletal" metrics={def} of={detail.teamsInLeague} />
+                  </div>
+
                   {detail.heatmap && (
-                    <div className="mb-5 max-w-md">
+                    <div className="mt-6 max-w-md">
                       <div className="mb-1.5 flex items-baseline justify-between">
                         <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Holdets heatmap</span>
                         <span className="font-mono text-[10px] text-faint">hvor holdet opererer</span>
@@ -239,10 +244,6 @@ export function TeamModal() {
                       </div>
                     </div>
                   )}
-                  <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                    <MetricGroup title="Offensive nøgletal" metrics={off} of={detail.teamsInLeague} />
-                    <MetricGroup title="Defensive nøgletal" metrics={def} of={detail.teamsInLeague} />
-                  </div>
                 </div>
 
                 <div className="lg:col-span-5">

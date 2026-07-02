@@ -226,7 +226,7 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
       }
       metrics.push({
         key: m.key,
-        label: m.label,
+        label: m.full,
         group: m.group,
         value: myVal ?? null,
         pct: me.percentile[m.key] ?? null,
