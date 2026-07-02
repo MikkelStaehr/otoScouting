@@ -53,10 +53,14 @@ def fetch_league(driver, job):
 
     def get(url):
         return driver.run_js(
-            'return fetch("' + url + '").then(function(r){return r.ok?r.text():null;});'
+            'return fetch("' + url + '").then(function(r){return r.ok?r.text():null;})'
+            '.catch(function(){return null;});'
         )
 
-    seasons = json.loads(get(f"{API}/unique-tournament/{job['ut']}/seasons/"))["seasons"]
+    st = get(f"{API}/unique-tournament/{job['ut']}/seasons/")
+    if not st:
+        return {"sid": None, "rows": []}
+    seasons = json.loads(st)["seasons"]
     sid = next((s["id"] for s in seasons if s["year"] == job["season"]), None)
     if sid is None:
         return {"sid": None, "rows": []}
@@ -108,8 +112,15 @@ def main() -> int:
             print(f"[{lk}] no players (>= {args.min_minutes} min) — skipping")
             continue
         print(f"[{lk}] {len(players)} players (season {cfg['sofascoreSeason']})…", flush=True)
-        out = fetch_league([{"ut": cfg["sofascore"], "season": cfg["sofascoreSeason"], "players": players}])[0]
-        rows = out["rows"]
+        try:
+            out = fetch_league([{"ut": cfg["sofascore"], "season": cfg["sofascoreSeason"], "players": players}])[0]
+        except Exception as ex:
+            print(f"  fetch failed ({str(ex)[:80]}) — skipping", flush=True)
+            continue
+        rows = (out or {}).get("rows") or []
+        if not rows:
+            print("  no heatmaps — skipping", flush=True)
+            continue
         conn.execute("DELETE FROM player_heatmaps WHERE league=? AND season=?", (lk, code))
         conn.executemany(
             "INSERT OR REPLACE INTO player_heatmaps "
