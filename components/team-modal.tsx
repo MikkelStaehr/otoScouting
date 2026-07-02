@@ -38,6 +38,9 @@ interface SquadRow {
 }
 interface SquadGroup { group: string; label: string; cols: SquadCol[]; rows: SquadRow[] }
 interface Formation { formation: string; n: number; pct: number }
+interface StyleFit { style: string; conf: number; why: string[] }
+interface StyleResult { primary: StyleFit | null; secondary: StyleFit | null }
+interface TeamStyle { ip: StyleResult; oop: StyleResult }
 interface TeamReport {
   team: string; league: string; season_label: string;
   matches: number | null; rating: number | null;
@@ -45,6 +48,7 @@ interface TeamReport {
   metrics: MetricReport[]; strengths: MetricReport[]; weaknesses: MetricReport[];
   squad: SquadGroup[];
   formations: Formation[];
+  style: TeamStyle | null;
   positions: Dot[];
   heatmap: { w: number; h: number; grid: number[] } | null;
   zones: ZoneCover[];
@@ -226,6 +230,14 @@ export function TeamModal() {
                 </div>
               )}
 
+              {/* playing style — in / out of possession */}
+              {detail.style && (
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <StyleCard label="Med bolden" res={detail.style.ip} />
+                  <StyleCard label="Uden bolden" res={detail.style.oop} />
+                </div>
+              )}
+
               {/* strengths / weaknesses */}
               {(detail.strengths.length > 0 || detail.weaknesses.length > 0) && (
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -342,6 +354,25 @@ export function TeamModal() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function StyleCard({ label, res }: { label: string; res: StyleResult }) {
+  if (!res.primary) return null;
+  return (
+    <div className="rounded-xl border border-line bg-panel/30 p-3">
+      <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-faint">{label}</div>
+      <div className="flex flex-wrap items-baseline gap-2">
+        <span className="font-display text-base font-bold text-fg">{res.primary.style}</span>
+        <span className="tnum font-mono text-[11px] text-volt">{res.primary.conf}%</span>
+        {res.secondary && (
+          <span className="font-mono text-[11px] text-muted">· {res.secondary.style} {res.secondary.conf}%</span>
+        )}
+      </div>
+      {res.primary.why.length > 0 && (
+        <div className="mt-1 font-mono text-[10px] leading-relaxed text-faint">{res.primary.why.join(" · ")}</div>
+      )}
     </div>
   );
 }

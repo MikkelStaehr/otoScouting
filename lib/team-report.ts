@@ -10,6 +10,7 @@ import { getCrossLeaguePlayers } from "./players.ts";
 import { getTeamHeatmap, getSquadCentroids, type Heatmap } from "./heatmap.ts";
 import { getTeamFormations, type Formation } from "./formations.ts";
 import { classifyRole } from "./roles.ts";
+import { classifyTeamStyle, type TeamStyle } from "./team-style.ts";
 import { normTeam } from "./merge.ts";
 import { TEAM_METRICS } from "./team-metrics.ts";
 import type { EnrichedTeam, EnrichedPlayer, MetricKey } from "./types.ts";
@@ -76,6 +77,8 @@ export interface TeamReport {
   weaknesses: TeamMetricReport[]; // bottom percentile metrics
   squad: SquadGroup[]; // players by position with position-appropriate stats
   formations: Formation[]; // most-used formations this season (top first)
+  style: TeamStyle | null; // in-possession + out-of-possession playing style
+
   positions: PlayerDot[]; // squad avg positions (heatmap centroids), coloured by OUT
   heatmap: Heatmap | null; // minute-weighted composite of the outfield squad
   // defensive-zone weakness + recruitment fits (existing engine)
@@ -307,6 +310,40 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
     .filter((m) => m.pct! <= 35)
     .slice(0, 4);
 
+  // Team playing-style signals (percentiles within the league). Team-metric
+  // percentiles come from getTeams; crossing volume + high turnovers are summed
+  // from the league's players; long-ball share + corners from the team rows.
+  let style: TeamStyle | null = null;
+  if (me) {
+    const leaguePlayers = players.filter((p) => p.league === league);
+    const agg = new Map<string, { crosses: number; press: number }>();
+    for (const p of leaguePlayers) {
+      const a = agg.get(p.team) ?? { crosses: 0, press: 0 };
+      a.crosses += p.acc_crosses ?? 0;
+      a.press += p.poss_won_att_third ?? 0;
+      agg.set(p.team, a);
+    }
+    const pctOf = (arr: number[], v: number | null | undefined) => {
+      if (v == null || !arr.length) return 50;
+      const s = [...arr].sort((x, y) => x - y);
+      return (s.filter((x) => x <= v).length / s.length) * 100;
+    };
+    const mine = playerTeam ? agg.get(playerTeam) : undefined;
+    const crosses = pctOf([...agg.values()].map((a) => a.crosses), mine?.crosses);
+    const pressHigh = pctOf([...agg.values()].map((a) => a.press), mine?.press);
+    const lbShare = (t: EnrichedTeam) => (t.accurate_passes ? t.accurate_long_balls / t.accurate_passes : 0);
+    const cornerRate = (t: EnrichedTeam) => (t.matches ? t.corners / t.matches : 0);
+    const longball = pctOf(siblings.map(lbShare), lbShare(me));
+    const corners = pctOf(siblings.map(cornerRate), cornerRate(me));
+    const pc = (k: keyof typeof me.percentile) => me.percentile[k] ?? 50;
+    style = classifyTeamStyle({
+      possession: pc("possession"), pass_pct: pc("pass_pct"), xg: pc("xg"), big_chances: pc("big_chances"),
+      interceptions: pc("interceptions"), tackles: pc("tackles"), duels: pc("duels_won_pct"),
+      aerials: pc("aerials_won_pct"), solidShots: pc("shots_against"), cleanSheets: pc("clean_sheets"),
+      longball, corners, crosses, pressHigh,
+    });
+  }
+
   // Nothing to show at all → let the caller 404. Otherwise render whatever we have
   // (team stats OR squad OR zones), so a name mismatch never blanks the whole report.
   if (!me && squad.length === 0 && !weakness) return null;
@@ -324,6 +361,7 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
     weaknesses,
     squad,
     formations,
+    style,
     positions,
     heatmap,
     zones: weakness?.zones ?? [],
