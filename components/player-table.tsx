@@ -3,7 +3,7 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { EnrichedPlayer, GroupKey, MetricKey } from "@/lib/types";
 import { METRIC_LABEL, METRIC_NAME, METRIC_DESC, GROUP_LABEL } from "@/lib/metrics";
-import { flagUrl } from "@/lib/flags";
+import { flagUrl, leagueFlagUrl } from "@/lib/flags";
 import { teamLogoUrl } from "@/lib/team-logos";
 import { medianStyle } from "@/lib/heat";
 import { CompareOverlay } from "./compare-overlay";
@@ -873,11 +873,16 @@ function Flag({ nat }: { nat: string | null }) {
 }
 
 function LeagueTag({ league }: { league: string }) {
+  const flag = leagueFlagUrl(league);
   return (
     <span
       title={league}
-      className="mr-1.5 inline-block rounded-[3px] border border-line-2 px-1 font-mono text-[9px] uppercase tracking-wider text-faint align-middle"
+      className="mr-1.5 inline-flex items-center gap-1 rounded-[3px] border border-line-2 px-1 font-mono text-[9px] uppercase tracking-wider text-faint align-middle"
     >
+      {flag && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={flag} alt="" className="inline-block h-2 w-auto rounded-[1px]" />
+      )}
       {LEAGUE_ABBR[league] ?? league.slice(0, 3)}
     </span>
   );

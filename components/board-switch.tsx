@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlayerTable } from "./player-table";
 import { TeamTable } from "./team-table";
+import { IconSelect, type Opt } from "./icon-select";
+import { leagueLabel } from "@/lib/league-meta";
+import { leagueFlagUrl } from "@/lib/flags";
 import type { LeagueSeasonOption } from "@/lib/teams";
 import type {
   EnrichedPlayer,
@@ -12,25 +15,11 @@ import type {
   MetricKey,
 } from "@/lib/types";
 
-const LEAGUE_LABEL: Record<string, string> = {
-  "DEN-Superliga": "Superliga",
-  "NOR-Eliteserien": "Eliteserien",
-  "SWE-Allsvenskan": "Allsvenskan",
-  "NED-Eredivisie": "Eredivisie",
-  "POR-PrimeiraLiga": "Primeira Liga",
-  "ENG-Championship": "Championship",
-  "GER-2Bundesliga": "2. Bundesliga",
-  "BEL-ProLeague": "Pro League",
-  "AUT-Bundesliga": "Bundesliga (AUT)",
-  "SUI-SuperLeague": "Super League",
-  "SCO-Premiership": "Premiership",
-  "POL-Ekstraklasa": "Ekstraklasa",
-  "CRO-HNL": "HNL",
-  "CZE-FirstLeague": "1. liga (CZE)",
-  "FIN-Veikkausliiga": "Veikkausliiga",
-  "ISL-Bestadeild": "Besta deild",
-};
-const leagueLabel = (k: string) => LEAGUE_LABEL[k] ?? k;
+function FlagImg({ url }: { url: string | null }) {
+  if (!url) return <span className="inline-block h-2.5 w-3.5 shrink-0" aria-hidden />;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="" className="inline-block h-2.5 w-auto shrink-0 rounded-[1px]" />;
+}
 
 export function BoardSwitch({
   players,
@@ -124,25 +113,19 @@ export function BoardSwitch({
         {/* League + season selector drives both boards. */}
         {leagues.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex items-center gap-2 rounded-lg border border-line-2 bg-ink px-2.5 py-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-faint">Liga</span>
-              <select
-                value={crossLeague ? "ALL" : selectedTeam?.league ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === "ALL") pick("ALL", "");
-                  else pick(v, teamOptions.find((o) => o.league === v)?.season ?? "");
-                }}
-                className="bg-transparent py-0.5 pr-1 text-sm text-fg outline-none"
-              >
-                {leagues.map((lg) => (
-                  <option key={lg} value={lg}>
-                    {leagueLabel(lg)}
-                  </option>
-                ))}
-                <option value="ALL">⚑ Alle ligaer</option>
-              </select>
-            </label>
+            <IconSelect
+              label="Liga"
+              value={crossLeague ? "ALL" : selectedTeam?.league ?? ""}
+              onChange={(v) => {
+                if (v === "ALL") pick("ALL", "");
+                else pick(v, teamOptions.find((o) => o.league === v)?.season ?? "");
+              }}
+              minWidth={170}
+              options={[
+                ...leagues.map((lg): Opt => ({ value: lg, label: leagueLabel(lg), icon: <FlagImg url={leagueFlagUrl(lg)} /> })),
+                { value: "ALL", label: "⚑ Alle ligaer", icon: <span className="inline-block h-2.5 w-3.5" /> },
+              ]}
+            />
             {seasonsForSelected.length > 1 && (
               <span className="flex items-center gap-1">
                 {seasonsForSelected.map((o) => (

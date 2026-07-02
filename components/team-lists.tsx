@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { teamLogoUrl } from "@/lib/team-logos";
+import { leagueFlagUrl } from "@/lib/flags";
 import { openTeam } from "./team-modal";
 
 export interface DashTeam {
@@ -147,7 +148,13 @@ function Row({ i, t, v, big }: { i: number; t: DashTeam; v: string; big?: boolea
         <Crest team={t.n} />
         <span className="min-w-0 flex-1 truncate">
           <span className="text-fg">{t.n}</span>
-          <span className="ml-1.5 font-mono text-[10px] text-faint">{LEAGUE_ABBR(t.lg)}</span>
+          <span className="ml-1.5 font-mono text-[10px] text-faint">
+            {leagueFlagUrl(t.lg) && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={leagueFlagUrl(t.lg)!} alt="" className="mr-1 inline-block h-2 w-auto rounded-[1px] align-middle" />
+            )}
+            {LEAGUE_ABBR(t.lg)}
+          </span>
         </span>
         <span className="tnum shrink-0 font-mono text-xs font-semibold text-volt">{v}</span>
       </button>

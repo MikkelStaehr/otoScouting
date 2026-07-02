@@ -55,7 +55,7 @@ export function getDashboardData(): DashboardData {
     .map((p) => {
       const per90 = p.per90 as unknown as Record<string, number | null>;
       return {
-        n: p.player, t: p.team, lg: p.league, age: p.age ?? null, min: p.minutes, mp: p.mp,
+        n: p.player, t: p.team, lg: p.league, nat: p.nation ?? null, age: p.age ?? null, min: p.minutes, mp: p.mp,
         out: p.outputScore == null ? null : Math.round(p.outputScore),
         v: Object.fromEntries(PLAYER_AXES.map((a) => [a.key, per90[a.key] ?? null])),
       };
@@ -74,7 +74,7 @@ export function getDashboardData(): DashboardData {
     .map((p) => {
       const per90 = p.per90 as unknown as Record<string, number | null>;
       return {
-        n: p.player, t: p.team, lg: p.league, age: p.age ?? null, min: p.minutes, mp: p.mp,
+        n: p.player, t: p.team, lg: p.league, nat: p.nation ?? null, age: p.age ?? null, min: p.minutes, mp: p.mp,
         pos: p.pos ?? null,
         out: p.outputScore == null ? null : Math.round(p.outputScore),
         xg: p.xg, goals: p.goals, gp: p.gk_goals_prevented, isGk: p.gk_saves != null,

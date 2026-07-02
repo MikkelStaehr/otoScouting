@@ -8,6 +8,7 @@ export interface PlayerPoint {
   n: string;
   t: string;
   lg: string;
+  nat: string | null;
   age: number | null;
   min: number;
   mp: number;

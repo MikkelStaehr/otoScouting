@@ -2,12 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { teamLogoUrl } from "@/lib/team-logos";
+import { leagueFlagUrl } from "@/lib/flags";
 import { openPlayer } from "./player-modal";
+
+function LeagueFlag({ lg }: { lg: string }) {
+  const url = leagueFlagUrl(lg);
+  if (!url) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="" className="mr-1 inline-block h-2 w-auto rounded-[1px] align-middle" />;
+}
 
 export interface DashPlayer {
   n: string;
   t: string;
   lg: string;
+  nat: string | null;
   age: number | null;
   min: number;
   mp: number;
@@ -210,6 +219,7 @@ function Row({
             {p.t}
           </span>
           <span className="block font-mono text-[10px] text-faint">
+            <LeagueFlag lg={p.lg} />
             {LEAGUE_ABBR(p.lg)}
             {pos && <span className="ml-1 text-muted">· {pos}</span>}
           </span>

@@ -21,3 +21,9 @@ export function flagUrl(nation: string | null): string | null {
   const iso = ISO2[nation.toUpperCase()];
   return iso ? `https://flagcdn.com/h20/${iso}.png` : null;
 }
+
+/** League icon = its country's flag. Each of our leagues is a distinct country
+ *  (the key prefix, e.g. "ENG-Championship" → ENG), so the flag identifies it. */
+export function leagueFlagUrl(league: string): string | null {
+  return flagUrl(league.split("-")[0] ?? null);
+}

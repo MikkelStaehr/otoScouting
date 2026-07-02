@@ -4,6 +4,15 @@ import { useMemo, useState } from "react";
 import { ScatterDashboard, type PlayerPoint, type TeamPoint } from "./scatter-dashboard";
 import { TopLists, type DashPlayer } from "./top-lists";
 import { TeamLists, type DashTeam } from "./team-lists";
+import { IconSelect, type Opt } from "./icon-select";
+import { leagueLabel } from "@/lib/league-meta";
+import { flagUrl, leagueFlagUrl } from "@/lib/flags";
+
+function FlagImg({ url }: { url: string | null }) {
+  if (!url) return <span className="inline-block h-2.5 w-3.5 shrink-0" aria-hidden />;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="" className="inline-block h-2.5 w-auto shrink-0 rounded-[1px]" />;
+}
 
 // The dashboard body for one mode (players / teams). Mode is driven by the route
 // (/ = Spillere, /hold = Hold). A single page-level league filter scopes the whole
@@ -25,36 +34,48 @@ export function DashboardView({
 }) {
   const isPlayers = mode === "players";
   const [league, setLeague] = useState("ALL");
+  const [nat, setNat] = useState("ALL");
 
   const leagues = useMemo(() => {
     const src = isPlayers ? playerPoints.map((p) => p.lg) : teamPoints.map((t) => t.lg);
     return [...new Set(src)].sort();
   }, [isPlayers, playerPoints, teamPoints]);
 
-  const keep = <T extends { lg: string }>(rows: T[]) =>
-    league === "ALL" ? rows : rows.filter((r) => r.lg === league);
-  const fPlayerPoints = useMemo(() => keep(playerPoints), [playerPoints, league]);
-  const fTeamPoints = useMemo(() => keep(teamPoints), [teamPoints, league]);
-  const fDashPlayers = useMemo(() => keep(dashPlayers), [dashPlayers, league]);
-  const fDashTeams = useMemo(() => keep(dashTeams), [dashTeams, league]);
+  const nations = useMemo(
+    () => [...new Set(playerPoints.map((p) => p.nat).filter((n): n is string => !!n))].sort(),
+    [playerPoints],
+  );
 
-  const scope = league === "ALL" ? "alle ligaer" : league.replace("-", " · ");
+  const keepLg = <T extends { lg: string }>(rows: T[]) =>
+    league === "ALL" ? rows : rows.filter((r) => r.lg === league);
+  const keepNat = <T extends { nat: string | null }>(rows: T[]) =>
+    nat === "ALL" ? rows : rows.filter((r) => r.nat === nat);
+
+  const fPlayerPoints = useMemo(() => keepNat(keepLg(playerPoints)), [playerPoints, league, nat]);
+  const fTeamPoints = useMemo(() => keepLg(teamPoints), [teamPoints, league]);
+  const fDashPlayers = useMemo(() => keepNat(keepLg(dashPlayers)), [dashPlayers, league, nat]);
+  const fDashTeams = useMemo(() => keepLg(dashTeams), [dashTeams, league]);
+
+  const leagueOpts: Opt[] = [
+    { value: "ALL", label: "Alle ligaer", icon: <span className="inline-block h-2.5 w-3.5" /> },
+    ...leagues.map((lg) => ({ value: lg, label: leagueLabel(lg), icon: <FlagImg url={leagueFlagUrl(lg)} /> })),
+  ];
+  const natOpts: Opt[] = [
+    { value: "ALL", label: "Alle nationer", icon: <span className="inline-block h-2.5 w-3.5" /> },
+    ...nations.map((n) => ({ value: n, label: n, icon: <FlagImg url={flagUrl(n)} /> })),
+  ];
+
+  const scope =
+    (league === "ALL" ? "alle ligaer" : leagueLabel(league)) + (nat !== "ALL" ? ` · ${nat}` : "");
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-faint">Liga</span>
-        <select
-          value={league}
-          onChange={(e) => setLeague(e.target.value)}
-          className="rounded-lg border border-line-2 bg-ink px-3 py-1.5 font-mono text-xs text-fg outline-none focus:border-volt/50"
-        >
-          <option value="ALL">Alle ligaer</option>
-          {leagues.map((lg) => (
-            <option key={lg} value={lg}>{lg}</option>
-          ))}
-        </select>
-        <span className="font-mono text-[10px] text-faint">
+      <div className="mb-3 flex flex-wrap items-end gap-3">
+        <IconSelect label="Liga" value={league} onChange={setLeague} options={leagueOpts} minWidth={160} />
+        {isPlayers && (
+          <IconSelect label="Nationalitet" value={nat} onChange={setNat} options={natOpts} minWidth={160} />
+        )}
+        <span className="mb-1.5 font-mono text-[10px] text-faint">
           scoper hele siden · {isPlayers ? fPlayerPoints.length : fTeamPoints.length} {isPlayers ? "spillere" : "hold"}
         </span>
       </div>
