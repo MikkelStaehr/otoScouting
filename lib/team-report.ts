@@ -147,32 +147,48 @@ const GROUP_LABEL: Record<string, string> = {
 const GROUP_ORDER = ["GK", "DF", "MF", "FW"];
 
 // Resolve a clicked (Sofascore-spelled) team name to the FBref team name the
-// player rows use. Exact normalised match first, then a distinctive-token
-// overlap so "Red Bull Salzburg" ↔ "RB Salzburg" and "SV 07 Elversberg" ↔
-// "Elversberg" still line up.
+// player rows use. Exact normalised match first; then a SUBSET match so a short
+// club code lines up with its full name ("PSV" ↔ "PSV Eindhoven", "AZ" ↔ "AZ
+// Alkmaar"); then a distinctive-token overlap ("Red Bull Salzburg" ↔ "RB
+// Salzburg", "SV 07 Elversberg" ↔ "Elversberg").
 function resolvePlayerTeam(league: string, clicked: string, players: EnrichedPlayer[]): string | null {
   const nt = normTeam(clicked);
   const inLeague = players.filter((p) => p.league === league);
   const exact = inLeague.find((p) => normTeam(p.team) === nt);
   if (exact) return exact.team;
 
-  const target = new Set(nt.split(" ").filter((t) => t.length >= 3));
-  if (target.size === 0) return null;
-  const seen = new Set<string>();
-  let best: string | null = null;
-  let bestLen = 0;
-  for (const p of inLeague) {
-    if (seen.has(p.team)) continue;
-    seen.add(p.team);
-    let sharedLen = 0;
-    for (const tok of new Set(normTeam(p.team).split(" ").filter((t) => t.length >= 3)))
-      if (target.has(tok)) sharedLen += tok.length;
-    if (sharedLen > bestLen) {
-      bestLen = sharedLen;
-      best = p.team;
+  const toks = (s: string) => new Set(normTeam(s).split(" ").filter((t) => t.length >= 2));
+  const target = toks(clicked);
+  const teams = [...new Set(inLeague.map((p) => p.team))];
+
+  // Subset match: one name's tokens fully contained in the other's (both non-empty).
+  let subBest: string | null = null;
+  let subShared = 0;
+  for (const team of teams) {
+    const tt = toks(team);
+    if (!tt.size || !target.size) continue;
+    const shared = [...tt].filter((t) => target.has(t)).length;
+    const subset = shared === tt.size || shared === target.size;
+    if (subset && shared > subShared) {
+      subShared = shared;
+      subBest = team;
     }
   }
-  return bestLen >= 4 ? best : null; // need a real shared token, not incidental noise
+  if (subBest) return subBest;
+
+  // Distinctive-token overlap (needs a solid shared token of length >= 4).
+  const t3 = new Set([...target].filter((t) => t.length >= 3));
+  let best: string | null = null;
+  let bestLen = 0;
+  for (const team of teams) {
+    let sharedLen = 0;
+    for (const tok of toks(team)) if (tok.length >= 3 && t3.has(tok)) sharedLen += tok.length;
+    if (sharedLen > bestLen) {
+      bestLen = sharedLen;
+      best = team;
+    }
+  }
+  return bestLen >= 4 ? best : null;
 }
 
 function buildSquad(league: string, teamName: string, players: EnrichedPlayer[]): SquadGroup[] {
