@@ -110,7 +110,7 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
 
   const config = loadModelConfig();
   const displayGroups: GroupKey[] = isGk
-    ? ["goalkeeping"]
+    ? ["goalkeeping", "buildup"] // buildup shows sweeper / ball-playing profile
     : ["offensive", "expected", "creation", "efficiency", "defensive", "buildup"];
   const groups: SimGroup[] = displayGroups
     .filter((g) => config.groups[g]?.length)

@@ -168,7 +168,6 @@ export function PlayerModal() {
                       </span>
                     </div>
                     <PitchHeatmap hm={detail.heatmap} id="player-hm" />
-                    <p className="mt-1.5 font-mono text-[10px] text-faint">hvor han er på banen over sæsonen</p>
                   </div>
                 )}
 

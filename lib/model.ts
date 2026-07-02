@@ -33,6 +33,14 @@ export function allMetrics(config: ModelConfig): MetricKey[] {
 
 const isGk = (m: MetricKey) => m.startsWith("gk_");
 
+// Build-up / passing metrics that are ALSO meaningful for keepers — used to tell a
+// sweeper / ball-playing keeper from a limited one. Keepers get a percentile on
+// these ranked WITHIN the keeper pool (not vs outfielders), so they can be filtered
+// and read like any other stat. Outfielders keep their normal outfield-pool rank.
+const KEEPER_BUILDUP = new Set<MetricKey>([
+  "pass_pct", "passes", "long_balls", "long_ball_pct", "final_third_passes",
+]);
+
 function per90(value: number, minutes: number): number {
   return minutes > 0 ? (value * 90) / minutes : 0;
 }
@@ -109,6 +117,15 @@ export function enrichPlayers(
       .filter((v): v is number => v !== null)
       .sort((a, b) => a - b);
   }
+  // Keeper-pool distributions for the shared build-up metrics (keeper-vs-keeper).
+  const sortedKeeper = {} as Record<MetricKey, number[]>;
+  for (const m of metrics) {
+    if (!KEEPER_BUILDUP.has(m)) continue;
+    sortedKeeper[m] = keeperPool
+      .map((p) => rankValue(p, m))
+      .filter((v): v is number => v !== null)
+      .sort((a, b) => a - b);
+  }
 
   // Weighted average of percentiles, given a weight map.
   const weightedScore = (
@@ -142,10 +159,13 @@ export function enrichPlayers(
       // against outfielders (tie-inflated) and read as a real ranking.
       const rv = rankValue(p, m); // league-adjusted value for ranking
       const inPool = isGk(m) ? keeper : !keeper;
-      if (rv === null || !inPool) {
+      // Keepers also get a keeper-vs-keeper rank on the shared build-up metrics.
+      const keeperBuildup = keeper && !inPool && KEEPER_BUILDUP.has(m);
+      if (rv === null || (!inPool && !keeperBuildup)) {
         percentile[m] = null;
       } else {
-        const pct = percentileOf(sorted[m], rv);
+        const pool = keeperBuildup ? sortedKeeper[m]! : sorted[m];
+        const pct = percentileOf(pool, rv);
         percentile[m] = r1(invert.has(m) ? 100 - pct : pct);
       }
     }
