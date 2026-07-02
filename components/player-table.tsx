@@ -8,6 +8,7 @@ import { teamLogoUrl } from "@/lib/team-logos";
 import { medianStyle } from "@/lib/heat";
 import { CompareOverlay } from "./compare-overlay";
 import { openPlayer } from "./player-modal";
+import { WatchlistButton } from "./watchlist";
 
 export const FOCUS_EVENT = "otoscout:focus-player";
 
@@ -475,6 +476,7 @@ export function PlayerTable({
                       <button onClick={() => toggleCompare(key)} title="Add to comparison" aria-label="Add to comparison" className={`mr-2 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border align-middle text-[10px] leading-none transition-colors ${compareKeys.includes(key) ? "border-volt bg-volt text-ink" : "border-line-2 text-faint hover:border-volt/60"}`}>{compareKeys.includes(key) ? "✓" : "+"}</button>
                       <span className="mr-2 tnum text-[11px] text-faint">{i + 1}</span>
                       <button onClick={() => openPlayer(key)} className="text-left transition-colors hover:text-volt">{p.player}</button>
+                    <span className="ml-2 align-middle"><WatchlistButton target={{ sid: p.sofascore_id, key, n: p.player, t: p.team, lg: p.league }} /></span>
                     </td>
                     <td className="px-3 py-2"><Flag nat={p.nation} /></td>
                     <td className="whitespace-nowrap px-3 py-2 text-muted">{crossLeague && <LeagueTag league={p.league} />}<TeamLogo team={p.team} />{p.team}</td>
@@ -560,6 +562,7 @@ export function PlayerTable({
                     </button>
                     <span className="mr-2 tnum text-[11px] text-faint">{i + 1}</span>
                     <button onClick={() => openPlayer(key)} className="text-left transition-colors hover:text-volt">{p.player}</button>
+                    <span className="ml-2 align-middle"><WatchlistButton target={{ sid: p.sofascore_id, key, n: p.player, t: p.team, lg: p.league }} /></span>
                   </td>
                   <td className="px-3 py-2"><Flag nat={p.nation} /></td>
                   <td className="whitespace-nowrap px-3 py-2 text-muted">

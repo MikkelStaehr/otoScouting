@@ -5,6 +5,7 @@
 // POST and broadcast the fresh list set to every subscriber.
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface WatchEntry {
   sid: number | null;
@@ -98,16 +99,33 @@ export interface WatchTarget {
 export function WatchlistButton({ target, size = "sm" }: { target: WatchTarget; size?: "sm" | "md" }) {
   const all = useWatchlists();
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [newName, setNewName] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
 
+  // Portal + fixed positioning so the popover is never clipped by a table's
+  // overflow-x container. Recomputed from the button rect on open.
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    const place = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (r) setPos({ top: r.bottom + 6, left: Math.max(8, Math.min(r.right - 224, window.innerWidth - 232)) });
     };
+    place();
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!btnRef.current?.contains(t) && !popRef.current?.contains(t)) setOpen(false);
+    };
+    const onScroll = () => setOpen(false);
     window.addEventListener("mousedown", onDown);
-    return () => window.removeEventListener("mousedown", onDown);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
+    };
   }, [open]);
 
   const saved = all.some((l) => inList(l, target.sid, target.key));
@@ -141,8 +159,9 @@ export function WatchlistButton({ target, size = "sm" }: { target: WatchTarget; 
   };
 
   return (
-    <div className="relative inline-flex" ref={ref}>
+    <span className="inline-flex">
       <button
+        ref={btnRef}
         onClick={(e) => {
           e.stopPropagation();
           setOpen((o) => !o);
@@ -154,9 +173,11 @@ export function WatchlistButton({ target, size = "sm" }: { target: WatchTarget; 
       >
         {saved ? "★" : "☆"}
       </button>
-      {open && (
+      {open && pos && createPortal(
         <div
-          className="absolute right-0 top-6 z-[80] w-56 rounded-xl border border-line-2 bg-panel/98 p-2 shadow-2xl shadow-black/50"
+          ref={popRef}
+          style={{ position: "fixed", top: pos.top, left: pos.left, width: 224 }}
+          className="z-[90] rounded-xl border border-line-2 bg-panel/98 p-2 shadow-2xl shadow-black/50"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="mb-1 px-1 font-mono text-[10px] uppercase tracking-wider text-faint">
@@ -198,8 +219,9 @@ export function WatchlistButton({ target, size = "sm" }: { target: WatchTarget; 
               +
             </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
-    </div>
+    </span>
   );
 }
