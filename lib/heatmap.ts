@@ -65,6 +65,40 @@ export function getTeamHeatmap(
   }
 }
 
+/** Per-player heatmap centroids (avg position) for a set of ids — cx = depth
+ *  (own goal → attack), cy = width, both 0-1. For the team formation/shape view. */
+export function getSquadCentroids(
+  league: string,
+  season: string,
+  ids: number[],
+): Map<number, { cx: number; cy: number }> {
+  const out = new Map<number, { cx: number; cy: number }>();
+  if (!ids.length) return out;
+  try {
+    const rows = getDb()
+      .prepare(
+        `SELECT player_id, grid_w, grid_h, grid FROM player_heatmaps
+          WHERE league = ? AND season = ? AND player_id IN (${ids.map(() => "?").join(",")})`,
+      )
+      .all(league, season, ...ids) as { player_id: number; grid_w: number; grid_h: number; grid: string }[];
+    for (const r of rows) {
+      const grid = JSON.parse(r.grid) as number[];
+      let tot = 0, sx = 0, sy = 0;
+      for (let row = 0; row < r.grid_h; row++)
+        for (let col = 0; col < r.grid_w; col++) {
+          const v = grid[row * r.grid_w + col] ?? 0;
+          tot += v;
+          sx += ((col + 0.5) / r.grid_w) * v;
+          sy += ((row + 0.5) / r.grid_h) * v;
+        }
+      if (tot > 0) out.set(r.player_id, { cx: sx / tot, cy: sy / tot });
+    }
+  } catch {
+    /* table not built yet */
+  }
+  return out;
+}
+
 export function getHeatmap(
   league: string,
   season: string,

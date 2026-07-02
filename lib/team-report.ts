@@ -7,7 +7,7 @@
 import { getTeams, getTeamLeagueSeasons } from "./teams.ts";
 import { getTeamWeakness, type ZoneCover } from "./weakness.ts";
 import { getCrossLeaguePlayers } from "./players.ts";
-import { getTeamHeatmap, type Heatmap } from "./heatmap.ts";
+import { getTeamHeatmap, getSquadCentroids, type Heatmap } from "./heatmap.ts";
 import { getTeamFormations, type Formation } from "./formations.ts";
 import { normTeam } from "./merge.ts";
 import { TEAM_METRICS } from "./team-metrics.ts";
@@ -47,6 +47,17 @@ export interface SquadGroup {
   rows: SquadRow[];
 }
 
+export interface PlayerDot {
+  key: string; // `${team}::${player}` for the player modal
+  player: string;
+  pos: string | null;
+  cx: number; // depth 0-1 (own goal → attack)
+  cy: number; // width 0-1
+  out: number | null;
+  minutes: number;
+  isGk: boolean;
+}
+
 export interface TeamReport {
   team: string;
   league: string;
@@ -60,6 +71,7 @@ export interface TeamReport {
   weaknesses: TeamMetricReport[]; // bottom percentile metrics
   squad: SquadGroup[]; // players by position with position-appropriate stats
   formations: Formation[]; // most-used formations this season (top first)
+  positions: PlayerDot[]; // squad avg positions (heatmap centroids), coloured by OUT
   heatmap: Heatmap | null; // minute-weighted composite of the outfield squad
   // defensive-zone weakness + recruitment fits (existing engine)
   zones: ZoneCover[];
@@ -177,13 +189,38 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
   const teamPlayers = playerTeam
     ? players.filter((p) => p.league === league && p.team === playerTeam)
     : [];
+  const hmSeason = teamPlayers[0]?.season ?? "";
   const heatmap = teamPlayers.length
     ? getTeamHeatmap(
         league,
-        teamPlayers[0]!.season,
+        hmSeason,
         teamPlayers.map((p) => ({ id: p.sofascore_id, minutes: p.minutes, isGk: p.gk_saves != null })),
       )
     : null;
+
+  // Squad average positions (from heatmap centroids) — the team's real shape,
+  // each player coloured by OUT. Regulars only, so it reads as a lineup.
+  const centroids = getSquadCentroids(
+    league,
+    hmSeason,
+    teamPlayers.map((p) => p.sofascore_id).filter((x): x is number => x != null),
+  );
+  const positions: PlayerDot[] = teamPlayers
+    .filter((p) => p.sofascore_id != null && (p.minutes ?? 0) >= 600 && centroids.has(p.sofascore_id!))
+    .map((p) => {
+      const c = centroids.get(p.sofascore_id!)!;
+      return {
+        key: `${p.team}::${p.player}`,
+        player: p.player,
+        pos: (p.pos ?? "").split(",")[0]?.trim() ?? null,
+        cx: c.cx,
+        cy: c.cy,
+        out: p.outputScore == null ? null : Math.round(p.outputScore),
+        minutes: p.minutes,
+        isGk: p.gk_saves != null,
+      };
+    })
+    .sort((a, b) => b.minutes - a.minutes);
 
   // Find the league-season this team plays in (latest first) and its siblings,
   // so we can rank each metric within the league.
@@ -270,6 +307,7 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
     weaknesses,
     squad,
     formations,
+    positions,
     heatmap,
     zones: weakness?.zones ?? [],
     goalsAgainst: me?.value["goals_conceded"] ?? weakness?.goalsAgainst ?? null,

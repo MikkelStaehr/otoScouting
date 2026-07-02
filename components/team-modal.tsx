@@ -6,6 +6,7 @@ import { flagUrl } from "@/lib/flags";
 import { openPlayer } from "./player-modal";
 import { PitchHeatmap } from "./pitch-heatmap";
 import { ZonePitch } from "./zone-pitch";
+import { FormationPitch, type Dot } from "./formation-pitch";
 
 const OPEN_EVENT = "otoscout:open-team";
 
@@ -43,6 +44,7 @@ interface TeamReport {
   metrics: MetricReport[]; strengths: MetricReport[]; weaknesses: MetricReport[];
   squad: SquadGroup[];
   formations: Formation[];
+  positions: Dot[];
   heatmap: { w: number; h: number; grid: number[] } | null;
   zones: ZoneCover[];
   goalsAgainst: number | null; bigChancesAgainst: number | null;
@@ -239,14 +241,37 @@ export function TeamModal() {
 
                   {detail.heatmap && (
                     <div className="mt-6 max-w-md">
-                      <div className="mb-1.5 flex items-baseline justify-between">
-                        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Holdets heatmap</span>
-                        <span className="font-mono text-[10px] text-faint">hvor holdet opererer</span>
-                      </div>
-                      <PitchHeatmap hm={detail.heatmap} id="team-hm" />
-                      <p className="mt-1.5 font-mono text-[10px] text-faint">
-                        markspillernes sæson-heatmaps lagt sammen, vægtet efter spilletid
-                      </p>
+                      {/* formation + players over the heatmap */}
+                      {detail.positions.length > 0 ? (
+                        <>
+                          <div className="mb-1.5 flex items-baseline justify-between">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Opstilling & spillere</span>
+                            <span className="font-mono text-[10px] text-faint">gns. position · farve = OUT</span>
+                          </div>
+                          <FormationPitch
+                            hm={detail.heatmap}
+                            dots={detail.positions}
+                            formation={detail.formations[0]?.formation ?? null}
+                            onPick={openPlayer}
+                          />
+                          <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[10px] text-faint">
+                            <span>hver prik = spillers gns. position, størrelse = spilletid</span>
+                            <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(77,124,90,0.95)" }} /> høj OUT</span>
+                            <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "rgba(180,105,74,0.95)" }} /> lav OUT</span>
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="mb-1.5 flex items-baseline justify-between">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Holdets heatmap</span>
+                            <span className="font-mono text-[10px] text-faint">hvor holdet opererer</span>
+                          </div>
+                          <PitchHeatmap hm={detail.heatmap} id="team-hm" />
+                          <p className="mt-1.5 font-mono text-[10px] text-faint">
+                            markspillernes sæson-heatmaps lagt sammen, vægtet efter spilletid
+                          </p>
+                        </>
+                      )}
 
                       <div className="mt-4">
                         <div className="mb-1.5 flex items-baseline justify-between">
