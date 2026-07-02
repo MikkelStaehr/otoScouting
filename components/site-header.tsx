@@ -8,8 +8,12 @@ import { openSettings } from "./settings-modal";
 const NAV = [
   { href: "/", label: "Spillere" },
   { href: "/hold", label: "Hold" },
-  { href: "/board", label: "Database" },
   { href: "/shortlist", label: "Shortlist" },
+];
+// Database lives on the right, by the search field.
+const DB_NAV = [
+  { href: "/board", label: "Table of Justice" },
+  { href: "/database", label: "Raw DB" },
 ];
 
 export function SiteHeader() {
@@ -45,6 +49,22 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2">
+          <nav className="mr-1 flex items-center gap-1 border-r border-line/60 pr-2">
+            {DB_NAV.map((n) => {
+              const active = pathname.startsWith(n.href);
+              return (
+                <Link
+                  key={n.href}
+                  href={n.href}
+                  className={`rounded-lg px-2.5 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
+                    active ? "bg-volt/15 text-volt" : "text-faint hover:text-fg"
+                  }`}
+                >
+                  {n.label}
+                </Link>
+              );
+            })}
+          </nav>
           <button
             onClick={openPalette}
             className="flex items-center gap-2 rounded-lg border border-line-2 bg-panel/60 px-3 py-1.5 text-sm text-muted transition-colors hover:border-volt/40 hover:text-fg"
