@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { flagUrl } from "@/lib/flags";
 import { teamLogoUrl } from "@/lib/team-logos";
 import { PitchHeatmap } from "./pitch-heatmap";
+import { ZonePitch } from "./zone-pitch";
 import { WatchlistButton } from "./watchlist";
 
 const OPEN_EVENT = "otoscout:open-player";
@@ -168,6 +169,17 @@ export function PlayerModal() {
                       </span>
                     </div>
                     <PitchHeatmap hm={detail.heatmap} id="player-hm" />
+
+                    <div className="mt-4">
+                      <div className="mb-1.5 flex items-baseline justify-between">
+                        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">Zoneanalyse</span>
+                        <span className="font-mono text-[10px] text-faint">andel af aktivitet pr. zone</span>
+                      </div>
+                      <ZonePitch hm={detail.heatmap} id="player-zone" />
+                      <p className="mt-1.5 font-mono text-[10px] leading-relaxed text-faint">
+                        Banen delt i 3×3 zoner; tal = andel af hans berøringer i hver zone (fra sæson-heatmappet).
+                      </p>
+                    </div>
                   </div>
                 )}
 
