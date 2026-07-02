@@ -73,21 +73,21 @@ const ROLES: Record<string, { role: string; terms: Term[] }[]> = {
     { role: "Aggressive CB", terms: [{ pos: "fs", w: 0.4 }, { p: "poss_won_att_third", w: 0.3 }, { p: "ball_recovery", w: 0.3 }] },
   ],
   BACK: [
-    { role: "Attacking Wing-Back", terms: [{ pos: "fs", w: 0.4 }, { p: "acc_crosses", w: 0.25 }, { p: "key_passes", w: 0.2 }, { p: "dribbles", w: 0.15 }] },
-    { role: "Holding Full-Back", terms: [{ pos: "fs", w: 0.4, inv: true }, { p: "tackles", w: 0.25 }, { p: "interceptions", w: 0.2 }, { p: "acc_crosses", w: 0.15, inv: true }] },
+    { role: "Attacking Wing-Back", terms: [{ pos: "fs", w: 0.35 }, { pos: "wide", w: 0.15 }, { p: "acc_crosses", w: 0.2 }, { p: "key_passes", w: 0.15 }, { p: "dribbles", w: 0.15 }] },
+    { role: "Holding Full-Back", terms: [{ pos: "fs", w: 0.35, inv: true }, { pos: "wide", w: 0.15 }, { p: "tackles", w: 0.25 }, { p: "interceptions", w: 0.15 }, { p: "acc_crosses", w: 0.1, inv: true }] },
     { role: "Inverted Full-Back", terms: [{ pos: "inward", w: 0.5 }, { p: "pass_pct", w: 0.3 }, { p: "passes", w: 0.2 }] },
-    { role: "Pressing Full-Back", terms: [{ p: "poss_won_att_third", w: 0.35 }, { p: "tackles", w: 0.3 }, { p: "ball_recovery", w: 0.2 }, { pos: "fs", w: 0.15 }] },
+    { role: "Pressing Full-Back", terms: [{ p: "poss_won_att_third", w: 0.3 }, { p: "tackles", w: 0.25 }, { pos: "wide", w: 0.15 }, { p: "ball_recovery", w: 0.15 }, { pos: "fs", w: 0.15 }] },
   ],
   MID: [
     { role: "Anchor", terms: [{ pos: "deep", w: 0.3 }, { p: "tackles", w: 0.3 }, { p: "interceptions", w: 0.25 }, { p: "clearances", w: 0.15 }] },
     { role: "Deep-Lying Playmaker", terms: [{ p: "pass_pct", w: 0.35 }, { p: "passes", w: 0.3 }, { p: "final_third_passes", w: 0.2 }, { pos: "deep", w: 0.15 }] },
     { role: "Box-to-Box", terms: [{ pos: "range", w: 0.3 }, { p: "npg", w: 0.2 }, { p: "ball_recovery", w: 0.2 }, { p: "tackles", w: 0.15 }, { p: "dribbles", w: 0.15 }] },
-    { role: "Advanced Playmaker", terms: [{ pos: "advanced", w: 0.25 }, { p: "key_passes", w: 0.35 }, { p: "big_chances_created", w: 0.25 }, { p: "dribbles", w: 0.15 }] },
+    { role: "Advanced Playmaker", terms: [{ pos: "wide", w: 0.2, inv: true }, { pos: "advanced", w: 0.15 }, { p: "key_passes", w: 0.35 }, { p: "big_chances_created", w: 0.2 }, { p: "dribbles", w: 0.1 }] },
   ],
   WIDE: [
     { role: "Winger", terms: [{ pos: "wide", w: 0.3 }, { p: "acc_crosses", w: 0.35 }, { p: "dribbles", w: 0.35 }] },
-    { role: "Inside Forward", terms: [{ pos: "inward", w: 0.15 }, { p: "xg", w: 0.3 }, { p: "shots", w: 0.25 }, { p: "npg", w: 0.3 }] },
-    { role: "Wide Playmaker", terms: [{ p: "key_passes", w: 0.4 }, { p: "big_chances_created", w: 0.3 }, { p: "dribbles", w: 0.3 }] },
+    { role: "Inside Forward", terms: [{ pos: "wide", w: 0.15 }, { p: "xg", w: 0.3 }, { p: "shots", w: 0.25 }, { p: "npg", w: 0.3 }] },
+    { role: "Wide Playmaker", terms: [{ p: "key_passes", w: 0.3 }, { p: "dribbles", w: 0.25 }, { p: "acc_crosses", w: 0.2 }, { p: "big_chances_created", w: 0.25 }] },
   ],
   STRIKER: [
     { role: "Poacher", terms: [{ p: "npg", w: 0.35 }, { p: "xg", w: 0.3 }, { p: "passes", w: 0.2, inv: true }, { p: "key_passes", w: 0.15, inv: true }] },
@@ -97,15 +97,19 @@ const ROLES: Record<string, { role: string; terms: Term[] }[]> = {
   ],
 };
 
-function bucketOf(posGroup: string, cx: number, cy: number): string {
-  if (posGroup === "GK") return "GK";
-  const wide = Math.abs(cy - 0.5) > 0.15;
-  if (posGroup === "DF") return wide ? "BACK" : "CB";
-  if (posGroup === "FW") return wide ? "WIDE" : "STRIKER";
-  if (posGroup === "MF") return wide ? "WIDE" : "MID";
-  if (cx < 0.42) return wide ? "BACK" : "CB";
-  if (cx > 0.62) return wide ? "WIDE" : "STRIKER";
-  return wide ? "WIDE" : "MID";
+// Candidate buckets a player is scored across — NOT a hard bucket. A player is
+// tried against every role in adjacent buckets (central + wide of his line), and
+// the stats break the tie. So a "midfielder" whose heatmap is only mildly wide but
+// whose numbers scream winger (dribbles/crosses) still lands as a Winger.
+function candidateBuckets(posGroup: string, cx: number): string[] {
+  if (posGroup === "GK") return ["GK"];
+  if (posGroup === "DF") return ["CB", "BACK"];
+  if (posGroup === "MF") return ["MID", "WIDE"];
+  if (posGroup === "FW") return ["STRIKER", "WIDE"];
+  // Unknown position → infer the neighbourhood from depth.
+  if (cx < 0.42) return ["CB", "BACK"];
+  if (cx > 0.6) return ["STRIKER", "WIDE"];
+  return ["MID", "WIDE"];
 }
 
 // Top signals that drove the score — those the player is actually strong on, by
@@ -137,17 +141,18 @@ export function classifyRole(
       drop: span(0.72 - c.cx, 0, 0.15),
     },
   };
-  const bucket = bucketOf(posGroup, c.cx, c.cy);
-  const ranked = (ROLES[bucket] ?? [])
+  const ranked = candidateBuckets(posGroup, c.cx)
+    .flatMap((b) => (ROLES[b] ?? []).map((r) => ({ ...r, bucket: b })))
     .map((r) => ({
       role: r.role,
+      bucket: r.bucket,
       conf: Math.round(clamp(r.terms.reduce((a, t) => a + t.w * termValue(t, sig), 0))),
       terms: r.terms,
     }))
     .sort((a, b) => b.conf - a.conf);
   const fit = (r: (typeof ranked)[number]): RoleFit => ({ role: r.role, conf: r.conf, why: explain(r.terms, sig) });
   return {
-    bucket,
+    bucket: ranked[0]?.bucket ?? posGroup ?? "?",
     primary: ranked[0] ? fit(ranked[0]) : null,
     secondary: ranked[1] && ranked[1].conf >= 50 ? fit(ranked[1]) : null,
   };
