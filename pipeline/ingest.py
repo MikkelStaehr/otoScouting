@@ -57,6 +57,7 @@ def main() -> int:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--league", default=None, help="restrict to one league key")
+    ap.add_argument("--leagues", default=None, help="comma-separated subset of league keys")
     ap.add_argument("--sofascore-only", action="store_true")
     ap.add_argument("--fbref-only", action="store_true")
     ap.add_argument("--spatial-only", action="store_true",
@@ -71,7 +72,15 @@ def main() -> int:
     ap.add_argument("--db", default=None)
     args = ap.parse_args()
 
-    keys = [args.league] if args.league else list(load_leagues())
+    all_leagues = list(load_leagues())
+    if args.leagues:
+        want = [k.strip() for k in args.leagues.split(",") if k.strip()]
+        keys = [k for k in want if k in all_leagues]
+    elif args.league:
+        keys = [args.league]
+    else:
+        keys = all_leagues
+    subset = len(keys) < len(all_leagues)  # a chosen subset → Sofascore per league
     db = ["--db", args.db] if args.db else []
     results: dict[str, bool] = {}
     t0 = time.time()
@@ -84,12 +93,18 @@ def main() -> int:
     if not args.no_coef and not args.fbref_only and not args.spatial_only:
         results["coefficients"], _ = run(["update_coefficients.py"], "clubelo coefficients")
 
-    # 2. Sofascore — one call so the whole table gets a single Δ snapshot
+    # 2. Sofascore — one call for the whole set (single Δ snapshot); per league when
+    #    a subset is chosen (a first-run wizard pick — no prior snapshot to keep sane).
     if not args.fbref_only and not args.spatial_only:
-        sofa = ["fetch_sofascore.py", *db]
-        if args.league:
-            sofa += ["--league", args.league]
-        results["sofascore"], _ = run(sofa, "Sofascore (all leagues, one snapshot)")
+        if subset:
+            for lk in keys:
+                results[f"sofascore:{lk}"], _ = run(
+                    ["fetch_sofascore.py", "--league", lk, *db], f"Sofascore {lk}",
+                )
+        else:
+            results["sofascore"], _ = run(
+                ["fetch_sofascore.py", *db], "Sofascore (all leagues, one snapshot)",
+            )
 
     # 3. FBref — per league, isolated + time-bounded. FBref throttles/hangs on
     #    big leagues, so cap each attempt and retry the stragglers in later passes

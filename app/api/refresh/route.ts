@@ -4,14 +4,13 @@
 // Python venv on this machine.
 
 import { spawn } from "node:child_process";
+import { resolvePython } from "@/lib/python";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// The venv Python with soccerdata + ScraperFC. Override with OTOSCOUT_PYTHON.
-const PYTHON =
-  process.env.OTOSCOUT_PYTHON ??
-  `${process.env.USERPROFILE ?? process.env.HOME}\\sbspike\\Scripts\\python.exe`;
+// Project .venv first, then OTOSCOUT_PYTHON / legacy / system (see lib/python).
+const PYTHON = resolvePython().exe;
 
 function runStep(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {

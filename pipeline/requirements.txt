@@ -9,3 +9,8 @@ pandas>=2.0
 # prevented. No browser — one API call, handles Sofascore's Cloudflare bypass.
 # Upkeep is mostly `pip install -U ScraperFC` when Sofascore changes.
 ScraperFC>=4.5.0
+
+# botasaurus: real-browser Cloudflare bypass for the Sofascore image/heatmap/
+# formation endpoints (crests, player season heatmaps, team formations).
+# Downloads a Chromium on first browser run.
+botasaurus>=4.0.0

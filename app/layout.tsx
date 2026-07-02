@@ -7,6 +7,7 @@ import {
 } from "@/lib/players";
 import { CommandPalette } from "@/components/command-palette";
 import { SettingsModal } from "@/components/settings-modal";
+import { SetupWizard } from "@/components/setup-wizard";
 import { PlayerModal } from "@/components/player-modal";
 import { TeamModal } from "@/components/team-modal";
 import type { PlayerIndexRow } from "@/lib/types";
@@ -48,6 +49,7 @@ export default function RootLayout({
         <SettingsModal lastUpdated={lastUpdated} />
         <PlayerModal />
         <TeamModal />
+        <SetupWizard />
       </body>
     </html>
   );
