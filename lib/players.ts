@@ -389,7 +389,37 @@ function computeCrossLeaguePlayers(): Board {
     for (const [k, v] of r.deltas) deltas.set(k, v);
     comparedTo = comparedTo ?? r.comparedTo;
   }
-  return assemble(allRows, deltas, comparedTo, (p) => strength[p.league] ?? 1);
+
+  // A player who moved between two of our leagues this season appears once per
+  // league. On the cross-league board show him ONCE — his primary league (most
+  // minutes) — and note the other club on season_teams so the card still shows it.
+  // Keyed on the stable Sofascore id (rows without one can't be safely deduped).
+  const keeper = new Map<number, RawPlayer>();
+  for (const p of allRows) {
+    if (p.sofascore_id == null) continue;
+    const cur = keeper.get(p.sofascore_id);
+    if (!cur || (p.minutes ?? 0) > (cur.minutes ?? 0)) keeper.set(p.sofascore_id, p);
+  }
+  const otherClubs = new Map<number, string[]>();
+  for (const p of allRows) {
+    if (p.sofascore_id == null || keeper.get(p.sofascore_id) === p) continue;
+    (otherClubs.get(p.sofascore_id) ?? otherClubs.set(p.sofascore_id, []).get(p.sofascore_id)!).push(p.team);
+  }
+  const seen = new Set<number>();
+  const rows: RawPlayer[] = [];
+  for (const p of allRows) {
+    if (p.sofascore_id == null) {
+      rows.push(p);
+      continue;
+    }
+    if (seen.has(p.sofascore_id)) continue;
+    seen.add(p.sofascore_id);
+    const keep = keeper.get(p.sofascore_id)!;
+    const extra = otherClubs.get(p.sofascore_id);
+    if (extra?.length) keep.season_teams = [...new Set([...(keep.season_teams ?? [keep.team]), ...extra])];
+    rows.push(keep);
+  }
+  return assemble(rows, deltas, comparedTo, (p) => strength[p.league] ?? 1);
 }
 
 /** Small search index for the ⌘K palette. */
