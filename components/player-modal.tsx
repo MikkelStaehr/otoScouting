@@ -15,6 +15,14 @@ export function openPlayer(key: string) {
   window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: { key } }));
 }
 
+/** Transfermarkt market value -> compact string (€350k, €1.2m, €12m). */
+function fmtValue(v: number | null | undefined): string {
+  if (v == null) return "—";
+  if (v >= 1_000_000) return `€${(v / 1_000_000).toFixed(v >= 10_000_000 ? 0 : 1)}m`;
+  if (v >= 1_000) return `€${Math.round(v / 1_000)}k`;
+  return `€${v}`;
+}
+
 interface SimStat { key: string; label: string; value: number | null; pct: number | null }
 interface SimGroup { label: string; stats: SimStat[] }
 interface SimilarPlayer {
@@ -28,6 +36,7 @@ interface PlayerDetail {
   key: string; sid: number | null; player: string; team: string; league: string;
   age: number | null; pos: string | null; posGroup: string;
   nation: string | null; minutes: number; out: number | null;
+  marketValue: number | null;
   flat: { label: string; value: number | null; pct?: boolean }[];
   seasonTeams: string[] | null;
   role: RoleResult | null;
@@ -143,6 +152,14 @@ export function PlayerModal() {
                 {detail.age != null && <span>{detail.age} år</span>}
                 <Flag nat={detail.nation} />
                 <span className="text-faint">· {detail.minutes} min.</span>
+                {detail.marketValue != null && (
+                  <span
+                    title="Markedsværdi (Transfermarkt)"
+                    className="rounded bg-volt/15 px-1.5 font-semibold text-volt"
+                  >
+                    {fmtValue(detail.marketValue)}
+                  </span>
+                )}
               </div>
             )}
             {detail?.role?.primary && (

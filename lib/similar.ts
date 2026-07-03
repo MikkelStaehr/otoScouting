@@ -62,6 +62,7 @@ export interface PlayerDetail {
   nation: string | null;
   minutes: number;
   out: number | null;
+  marketValue: number | null; // Transfermarkt market value in euros
   flat: FlatStat[]; // plain season totals (position-appropriate)
   seasonTeams: string[] | null; // >1 when he changed club mid-season (current first)
   role: RoleResult | null; // data-driven role (from positioning + stats)
@@ -145,6 +146,7 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     nation: target.nation,
     minutes: target.minutes,
     out: target.outputScore == null ? null : Math.round(target.outputScore),
+    marketValue: target.market_value ?? null,
     flat: isGk
       ? [
           { label: "Kampe", value: target.mp },

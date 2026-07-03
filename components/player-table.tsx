@@ -51,6 +51,14 @@ const LEAGUE_ABBR: Record<string, string> = {
   "NOR-Eliteserien": "NOR",
 };
 
+/** Transfermarkt market value -> compact string (€350k, €1.2m, €12m). */
+function fmtValue(v: number | null | undefined): string {
+  if (v == null) return "—";
+  if (v >= 1_000_000) return `€${(v / 1_000_000).toFixed(v >= 10_000_000 ? 0 : 1)}m`;
+  if (v >= 1_000) return `€${Math.round(v / 1_000)}k`;
+  return `€${v}`;
+}
+
 export function PlayerTable({
   players,
   groups,
@@ -223,6 +231,7 @@ export function PlayerTable({
     if (key === "age") return p.age ?? 0;
     if (key === "minutes") return p.minutes;
     if (key === "outputScore") return p.outputScore ?? -Infinity;
+    if (key === "market_value") return p.market_value ?? -Infinity;
     if (key === "gaPer90") return p.gaPer90;
     if (key === "mp") return p.mp;
     if (key === "nineties") return p.minutes / 90;
@@ -323,7 +332,7 @@ export function PlayerTable({
       ),
     [activeGroups, groups],
   );
-  const identityColSpan = 8; // Player, Nat, Team, Pos, Age, Min, OUT, G+A/90
+  const identityColSpan = 9; // Player, Nat, Team, Pos, Age, Min, OUT, Værdi, G+A/90
 
   return (
     <div className="space-y-4">
@@ -436,7 +445,7 @@ export function PlayerTable({
           <table className="w-full border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-ink-2">
               <tr>
-                <th colSpan={5} className="bg-ink-2 px-3 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
+                <th colSpan={6} className="bg-ink-2 px-3 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
                   Stamdata
                 </th>
                 <th colSpan={3} className="border-l-2 border-line-2 px-3 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
@@ -455,6 +464,7 @@ export function PlayerTable({
                 <Th title="Hold" onClick={() => toggleSort("team", true)} active={sortKey === "team"} dir={sortDir}>Hold</Th>
                 <Th title="Primær position" onClick={() => toggleSort("pos", true)} active={sortKey === "pos"} dir={sortDir}>Pos</Th>
                 <Th num title="Alder" onClick={() => toggleSort("age")} active={sortKey === "age"} dir={sortDir}>Alder</Th>
+                <Th num title="Markedsværdi (Transfermarkt)" onClick={() => toggleSort("market_value")} active={sortKey === "market_value"} dir={sortDir}>Værdi</Th>
                 <Th num divider title="Kampe" onClick={() => toggleSort("mp")} active={sortKey === "mp"} dir={sortDir}>Kampe</Th>
                 <Th num title="Spillede minutter" onClick={() => toggleSort("minutes")} active={sortKey === "minutes"} dir={sortDir}>Min</Th>
                 <Th num title="90'ere (minutter / 90)" onClick={() => toggleSort("nineties")} active={sortKey === "nineties"} dir={sortDir}>90s</Th>
@@ -482,6 +492,7 @@ export function PlayerTable({
                     <td className="whitespace-nowrap px-3 py-2 text-muted">{crossLeague && <LeagueTag league={p.league} />}<TeamLogo team={p.team} />{p.team}</td>
                     <td className="px-3 py-2 font-mono text-xs text-muted">{primaryPos}</td>
                     <td className="px-3 py-2 text-right tnum text-muted">{p.age || "—"}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right tnum text-muted">{fmtValue(p.market_value)}</td>
                     <td className="border-l-2 border-line-2 px-3 py-2 text-right tnum text-muted">{p.mp}</td>
                     <td className="px-3 py-2 text-right tnum text-muted">{p.minutes}</td>
                     <td className="px-3 py-2 text-right tnum text-muted">{(p.minutes / 90).toFixed(1)}</td>
@@ -527,6 +538,7 @@ export function PlayerTable({
               <Th num title="Alder" onClick={() => toggleSort("age")} active={sortKey === "age"} dir={sortDir}>Age</Th>
               <Th num title="Spillede minutter" onClick={() => toggleSort("minutes")} active={sortKey === "minutes"} dir={sortDir}>Min</Th>
               <Th num accent title="Output-score (0–100), rolle-relativ: markspillere på offensive+defensive percentiler, målmænd på goalkeeping." onClick={() => toggleSort("outputScore")} active={sortKey === "outputScore"} dir={sortDir}>OUT</Th>
+              <Th num title="Markedsværdi (Transfermarkt)" onClick={() => toggleSort("market_value")} active={sortKey === "market_value"} dir={sortDir}>Værdi</Th>
               <Th num title="Mål + assists per 90 minutter" onClick={() => toggleSort("gaPer90")} active={sortKey === "gaPer90"} dir={sortDir}>G+A/90</Th>
               {columns.map(({ metric, groupStart }) => (
                 <Th key={metric} num divider={groupStart} title={METRIC_DESC[metric]} onClick={() => toggleSort(metric)} active={sortKey === metric} dir={sortDir}>
@@ -575,6 +587,7 @@ export function PlayerTable({
                   <td className="px-3 py-2 text-right tnum font-semibold text-volt">
                     {p.outputScore === null ? <span className="text-faint">—</span> : Math.round(p.outputScore)}
                   </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right tnum text-muted">{fmtValue(p.market_value)}</td>
                   <td className="px-3 py-2 text-right tnum text-fg">{p.gaPer90.toFixed(2)}</td>
                   {columns.map(({ metric, groupStart }) => (
                     <MetricCell
