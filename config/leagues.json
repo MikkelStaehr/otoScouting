@@ -16,7 +16,8 @@
       "clubelo": "DEN",
       "espn": "den.1",
       "strength": 0.971,
-      "avgElo": 1492.6
+      "avgElo": 1492.6,
+      "transfermarkt": "DK1"
     },
     "NOR-Eliteserien": {
       "sofascore": 20,
@@ -28,7 +29,8 @@
       "clubelo": "NOR",
       "espn": "nor.1",
       "strength": 0.933,
-      "avgElo": 1433.7
+      "avgElo": 1433.7,
+      "transfermarkt": "NO1"
     },
     "SWE-Allsvenskan": {
       "sofascore": 40,
@@ -40,7 +42,8 @@
       "clubelo": "SWE",
       "espn": "swe.1",
       "strength": 0.889,
-      "avgElo": 1367.3
+      "avgElo": 1367.3,
+      "transfermarkt": "SE1"
     },
     "NED-Eredivisie": {
       "sofascore": 37,
@@ -52,7 +55,8 @@
       "clubelo": "NED",
       "espn": "ned.1",
       "strength": 0.952,
-      "avgElo": 1463.9
+      "avgElo": 1463.9,
+      "transfermarkt": "NL1"
     },
     "POR-PrimeiraLiga": {
       "sofascore": 238,
@@ -64,7 +68,8 @@
       "clubelo": "POR",
       "espn": "por.1",
       "strength": 1.0,
-      "avgElo": 1537.3
+      "avgElo": 1537.3,
+      "transfermarkt": "PO1"
     },
     "ENG-Championship": {
       "sofascore": 18,
@@ -77,7 +82,8 @@
       "clubeloLevel": 2,
       "espn": "eng.2",
       "strength": 0.99,
-      "avgElo": 1521.6
+      "avgElo": 1521.6,
+      "transfermarkt": "GB2"
     },
     "GER-2Bundesliga": {
       "sofascore": 44,
@@ -90,7 +96,8 @@
       "clubeloLevel": 2,
       "espn": "ger.2",
       "strength": 0.944,
-      "avgElo": 1451.1
+      "avgElo": 1451.1,
+      "transfermarkt": "L2"
     },
     "BEL-ProLeague": {
       "sofascore": 38,
@@ -102,7 +109,8 @@
       "clubelo": "BEL",
       "espn": "bel.1",
       "strength": 0.979,
-      "avgElo": 1505.2
+      "avgElo": 1505.2,
+      "transfermarkt": "BE1"
     },
     "AUT-Bundesliga": {
       "sofascore": 45,
@@ -114,7 +122,8 @@
       "clubelo": "AUT",
       "espn": "aut.1",
       "strength": 0.887,
-      "avgElo": 1363.6
+      "avgElo": 1363.6,
+      "transfermarkt": "A1"
     },
     "SUI-SuperLeague": {
       "sofascore": 215,
@@ -126,7 +135,8 @@
       "clubelo": "SUI",
       "espn": "sui.1",
       "strength": 0.899,
-      "avgElo": 1382.4
+      "avgElo": 1382.4,
+      "transfermarkt": "C1"
     },
     "SCO-Premiership": {
       "sofascore": 36,
@@ -138,7 +148,8 @@
       "clubelo": "SCO",
       "espn": "sco.1",
       "strength": 0.875,
-      "avgElo": 1344.9
+      "avgElo": 1344.9,
+      "transfermarkt": "SC1"
     },
     "POL-Ekstraklasa": {
       "sofascore": 202,
@@ -150,7 +161,8 @@
       "clubelo": "POL",
       "espn": "pol.1",
       "strength": 0.918,
-      "avgElo": 1410.8
+      "avgElo": 1410.8,
+      "transfermarkt": "PL1"
     },
     "CRO-HNL": {
       "sofascore": 170,
@@ -162,7 +174,8 @@
       "clubelo": "CRO",
       "espn": "cro.1",
       "strength": 0.875,
-      "avgElo": 1344.8
+      "avgElo": 1344.8,
+      "transfermarkt": "KR1"
     },
     "CZE-FirstLeague": {
       "sofascore": 172,
@@ -174,7 +187,8 @@
       "clubelo": "CZE",
       "espn": "cze.1",
       "strength": 0.909,
-      "avgElo": 1398.1
+      "avgElo": 1398.1,
+      "transfermarkt": "TS1"
     },
     "FIN-Veikkausliiga": {
       "sofascore": 41,
@@ -186,7 +200,8 @@
       "clubelo": "FIN",
       "espn": "fin.1",
       "strength": 0.8,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "FI1"
     },
     "ISL-Bestadeild": {
       "sofascore": 188,
@@ -198,7 +213,8 @@
       "clubelo": "ISL",
       "espn": "isl.1",
       "strength": 0.72,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "IS1"
     },
     "FRA-Ligue2": {
       "sofascore": 182,
@@ -211,7 +227,8 @@
       "clubeloLevel": 2,
       "espn": "fra.2",
       "strength": 0.95,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "FR2"
     },
     "ESP-Segunda": {
       "sofascore": 54,
@@ -224,7 +241,8 @@
       "clubeloLevel": 2,
       "espn": "esp.2",
       "strength": 0.95,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "ES2"
     },
     "ITA-SerieB": {
       "sofascore": 53,
@@ -237,7 +255,8 @@
       "clubeloLevel": 2,
       "espn": "ita.2",
       "strength": 0.93,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "IT2"
     },
     "TUR-SuperLig": {
       "sofascore": 52,
@@ -250,7 +269,8 @@
       "clubeloLevel": 1,
       "espn": "tur.1",
       "strength": 0.95,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "TR1"
     },
     "UKR-PremierLiga": {
       "sofascore": 218,
@@ -263,7 +283,8 @@
       "clubeloLevel": 1,
       "espn": "ukr.1",
       "strength": 0.9,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "UKR1"
     },
     "BUL-ParvaLiga": {
       "sofascore": 247,
@@ -276,7 +297,8 @@
       "clubeloLevel": 1,
       "espn": "bul.1",
       "strength": 0.82,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "BU1"
     },
     "POR-LigaPortugal2": {
       "sofascore": 239,
@@ -289,7 +311,8 @@
       "clubeloLevel": 2,
       "espn": "por.2",
       "strength": 0.88,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "PO2"
     },
     "GRE-SuperLeague": {
       "sofascore": 185,
@@ -302,7 +325,8 @@
       "clubeloLevel": 1,
       "espn": "gre.1",
       "strength": 0.85,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "GR1"
     },
     "SRB-SuperLiga": {
       "sofascore": 210,
@@ -315,7 +339,8 @@
       "clubeloLevel": 1,
       "espn": "srb.1",
       "strength": 0.83,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "SER1"
     },
     "HUN-NBI": {
       "sofascore": 187,
@@ -328,7 +353,8 @@
       "clubeloLevel": 1,
       "espn": "hun.1",
       "strength": 0.8,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "UNG1"
     },
     "ROU-Liga1": {
       "sofascore": 152,
@@ -341,7 +367,8 @@
       "clubeloLevel": 1,
       "espn": "rou.1",
       "strength": 0.82,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "RO1"
     },
     "SVK-Superliga": {
       "sofascore": 211,
@@ -354,7 +381,8 @@
       "clubeloLevel": 1,
       "espn": "svk.1",
       "strength": 0.8,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "SLO1"
     },
     "SVN-PrvaLiga": {
       "sofascore": 212,
@@ -367,7 +395,8 @@
       "clubeloLevel": 1,
       "espn": "svn.1",
       "strength": 0.78,
-      "avgElo": null
+      "avgElo": null,
+      "transfermarkt": "SL1"
     }
   }
 }

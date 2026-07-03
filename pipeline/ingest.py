@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 """Batch ingestion — the monthly job that fills scouting.db from the registry.
 
-Runs five steps, each isolated so one failure doesn't sink the rest:
+Runs six steps, each isolated so one failure doesn't sink the rest:
   1. clubelo league-strength coefficients (fast)
   2. Sofascore for ALL leagues — one process, one snapshot (keeps Δ-form sane)
+  2b. Transfermarkt market values (light club-page scrape, cloudscraper, paced)
   3. FBref per league (slow, ~3-10 min each) — a bad league is logged and skipped
   4. Season heatmaps (browser scrape, ~20-30 min) — per-league resilient
   5. Team formations (browser scrape, ~20-30 min) — per-league resilient
 
   python pipeline/ingest.py                    # everything (the monthly run)
   python pipeline/ingest.py --sofascore-only   # fast: coeffs + Sofascore only
+  python pipeline/ingest.py --tm-only          # just the Transfermarkt values
   python pipeline/ingest.py --fbref-only       # just the slow FBref pass
   python pipeline/ingest.py --spatial-only     # just heatmaps + formations
   python pipeline/ingest.py --no-spatial       # everything except the browser scrapes
@@ -65,6 +67,8 @@ def main() -> int:
     ap.add_argument("--no-spatial", action="store_true",
                     help="skip the browser scrapes (heatmaps + formations)")
     ap.add_argument("--no-coef", action="store_true", help="skip clubelo coefficients")
+    ap.add_argument("--tm-only", action="store_true", help="only the Transfermarkt market-value scrape")
+    ap.add_argument("--no-tm", action="store_true", help="skip the Transfermarkt scrape")
     ap.add_argument("--fbref-timeout", type=int, default=240,
                     help="per-league FBref timeout in seconds; a hang is skipped and retried")
     ap.add_argument("--fbref-passes", type=int, default=3,
@@ -87,7 +91,7 @@ def main() -> int:
 
     print(f"Ingesting {len(keys)} league(s): {', '.join(keys)}", flush=True)
 
-    only = args.sofascore_only or args.fbref_only or args.spatial_only
+    only = args.sofascore_only or args.fbref_only or args.spatial_only or args.tm_only
 
     # 1. league-strength coefficients (unless we're only doing FBref/spatial)
     if not args.no_coef and not args.fbref_only and not args.spatial_only:
@@ -104,6 +108,22 @@ def main() -> int:
         else:
             results["sofascore"], _ = run(
                 ["fetch_sofascore.py", *db], "Sofascore (all leagues, one snapshot)",
+            )
+
+    # 2b. Transfermarkt market values — light club-page scrape (cloudscraper, no
+    #     browser, paced). Independent of Sofascore; skipped by --no-tm or the other
+    #     *-only modes. Per league on a subset, one process otherwise.
+    if args.tm_only or (not args.sofascore_only and not args.fbref_only
+                        and not args.spatial_only and not args.no_tm):
+        if subset:
+            for lk in keys:
+                results[f"tm:{lk}"], _ = run(
+                    ["fetch_transfermarkt.py", "--league", lk, *db],
+                    f"Transfermarkt {lk}", timeout=600,
+                )
+        else:
+            results["transfermarkt"], _ = run(
+                ["fetch_transfermarkt.py", *db], "Transfermarkt (all leagues)", timeout=3600,
             )
 
     # 3. FBref — per league, isolated + time-bounded. FBref throttles/hangs on
