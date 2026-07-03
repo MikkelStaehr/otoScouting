@@ -22,6 +22,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   16→23 (EU 2. divisioner + østeuropæisk dybde) + ESPN-logo-fallback
 - **[2026-07-03](2026-07-03-udvidelse-komplet-frisk-ip.md)** — Udvidelsen komplet
   (29 ligaer): Cloudflare-blok løst via frisk IP + hæng-resiliente orchestratorer
+- **[2026-07-03](2026-07-03-db-git-lfs.md)** — Databasen versioneres via Git LFS
+  (backup + snapshot-fundament; kvote-afvejning for kadencen)
 
 ## Tidslinje (kort)
 
