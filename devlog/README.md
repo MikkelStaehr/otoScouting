@@ -26,6 +26,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   (backup + snapshot-fundament; kvote-afvejning for kadencen)
 - **[2026-07-03](2026-07-03-vaerdi-lag-transfermarkt.md)** — Værdi-laget (Fase 1):
   Transfermarkt-markedsværdi for alle 29 ligaer (let scrape, koder verificeret)
+- **[2026-07-03](2026-07-03-vaerdi-lag-matcher-ui.md)** — Værdi-laget (Fase 2-4):
+  matcher (genbruger Sofascore-merge) + Værdi-kolonne + spillerkort — value-per-output live
 
 ## Tidslinje (kort)
 
