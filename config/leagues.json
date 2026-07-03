@@ -290,6 +290,84 @@
       "espn": "por.2",
       "strength": 0.88,
       "avgElo": null
+    },
+    "GRE-SuperLeague": {
+      "sofascore": 185,
+      "sofascoreSeason": "25/26",
+      "fbref": "Super League Greece",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "clubelo": "GRE",
+      "clubeloLevel": 1,
+      "espn": "gre.1",
+      "strength": 0.85,
+      "avgElo": null
+    },
+    "SRB-SuperLiga": {
+      "sofascore": 210,
+      "sofascoreSeason": "25/26",
+      "fbref": "Serbian SuperLiga",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Jul",
+      "seasonEnd": "May",
+      "clubelo": "SRB",
+      "clubeloLevel": 1,
+      "espn": "srb.1",
+      "strength": 0.83,
+      "avgElo": null
+    },
+    "HUN-NBI": {
+      "sofascore": 187,
+      "sofascoreSeason": "25/26",
+      "fbref": "Nemzeti Bajnokság I",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Jul",
+      "seasonEnd": "May",
+      "clubelo": "HUN",
+      "clubeloLevel": 1,
+      "espn": "hun.1",
+      "strength": 0.8,
+      "avgElo": null
+    },
+    "ROU-Liga1": {
+      "sofascore": 152,
+      "sofascoreSeason": "25/26",
+      "fbref": "Liga I (M)",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Jul",
+      "seasonEnd": "May",
+      "clubelo": "ROU",
+      "clubeloLevel": 1,
+      "espn": "rou.1",
+      "strength": 0.82,
+      "avgElo": null
+    },
+    "SVK-Superliga": {
+      "sofascore": 211,
+      "sofascoreSeason": "25/26",
+      "fbref": "Slovak First Football League",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Jul",
+      "seasonEnd": "May",
+      "clubelo": "SVK",
+      "clubeloLevel": 1,
+      "espn": "svk.1",
+      "strength": 0.8,
+      "avgElo": null
+    },
+    "SVN-PrvaLiga": {
+      "sofascore": 212,
+      "sofascoreSeason": "25/26",
+      "fbref": "Slovenian PrvaLiga",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Jul",
+      "seasonEnd": "May",
+      "clubelo": "SVN",
+      "clubeloLevel": 1,
+      "espn": "svn.1",
+      "strength": 0.78,
+      "avgElo": null
     }
   }
 }

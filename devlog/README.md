@@ -20,6 +20,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   16 ligaer i drift, dashboard, forsvars/skabelses-data, spiller-similaritet, logoer
 - **[2026-07-02](2026-07-02-liga-udvidelse-og-espn-logoer.md)** — Liga-udvidelse
   16→23 (EU 2. divisioner + østeuropæisk dybde) + ESPN-logo-fallback
+- **[2026-07-03](2026-07-03-udvidelse-komplet-frisk-ip.md)** — Udvidelsen komplet
+  (29 ligaer): Cloudflare-blok løst via frisk IP + hæng-resiliente orchestratorer
 
 ## Tidslinje (kort)
 
