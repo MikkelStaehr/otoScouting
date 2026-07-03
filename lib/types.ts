@@ -37,6 +37,10 @@ export interface RawPlayer {
   gk_save_pct: number | null;
   gk_pk_saved: number | null;
   weekly_wage: number | null;
+  // Transfermarkt, attached by the merge — null if unmatched. Market value is the
+  // "value" side of value-per-output (weekly_wage stays null until a wage source).
+  market_value: number | null; // euros
+  tm_id: number | null; // Transfermarkt player id
   // Sofascore (Opta-style) fields, attached by the merge — null if unmatched
   sofascore_id: number | null; // Sofascore player id (for heatmap lookup)
   xg: number | null;

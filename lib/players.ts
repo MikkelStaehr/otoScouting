@@ -7,6 +7,7 @@ import { getDb } from "./db.ts";
 import { enrichPlayers, loadModelConfig } from "./model.ts";
 import { loadLeagueStrength } from "./league-config.ts";
 import { matchSofascore } from "./merge.ts";
+import { transfermarktRows } from "./transfermarkt.ts";
 import type {
   EnrichedPlayer,
   LeagueSeason,
@@ -264,6 +265,15 @@ function prepareRows(league: string, season: string): {
   // Collapse mid-season transfer stints into one season row (after Sofascore is
   // attached, so grouping can use the stable id and Sofascore is taken once).
   const rows = mergeStints(rawRows, sofaTeam);
+
+  // Attach Transfermarkt market value (matched by name+team, once per collapsed
+  // row so a transfer doesn't double it). The "value" side of value-per-output.
+  const { map: tmMap } = matchSofascore(rows, transfermarktRows(league, season));
+  for (const p of rows) {
+    const tm = tmMap.get(`${p.team}::${p.player}`);
+    p.market_value = tm?.market_value ?? null;
+    p.tm_id = tm?.tm_id ?? null;
+  }
 
   // Δ vs the previous Sofascore snapshot, matched by stable Sofascore id. Skipped
   // for merged (multi-club) rows — their summed totals aren't comparable to the
