@@ -195,26 +195,57 @@ function mergeGroup(g: RawPlayer[], sofaTeam: Map<RawPlayer, string | null>): Ra
   for (const k of SOFA_TAKE) merged[k] = rec(src)[k] ?? null;
 
   merged.team = primary.team;
-  // Current club first, then the others (most minutes first).
-  merged.season_teams = [primary.team, ...byMin.filter((p) => p !== primary).map((p) => p.team)];
+  // Current club first, then the other DISTINCT clubs (most minutes first). Distinct
+  // so an FBref double-listing at the same club doesn't read as a transfer.
+  const teams = [primary.team, ...byMin.filter((p) => p !== primary).map((p) => p.team)];
+  merged.season_teams = [...new Set(teams)];
   return merged as unknown as RawPlayer;
 }
 
-/** Collapse same-player transfer stints within one league-season into one row. */
+/** Collapse same-player rows within one league-season into one. Two rows are the
+ *  same player if they share a normalised name (a transfer stint — FBref keeps one
+ *  name across clubs) OR the same non-null Sofascore id (FBref sometimes double-lists
+ *  a player under two name variants at one club, e.g. "Bar Lin" / "Bar Enosh Lin" —
+ *  both match the same Sofascore player). Union-find over both keys. */
 function mergeStints(rows: RawPlayer[], sofaTeam: Map<RawPlayer, string | null>): RawPlayer[] {
-  const groups = new Map<string, RawPlayer[]>();
-  for (const p of rows) {
-    const k = nmKey(p.player);
-    (groups.get(k) ?? groups.set(k, []).get(k)!).push(p);
-  }
+  const parent = rows.map((_, i) => i);
+  const find = (i: number): number => {
+    let r = i;
+    while (parent[r] !== r) r = parent[r]!;
+    while (parent[i] !== r) {
+      const next = parent[i]!;
+      parent[i] = r;
+      i = next;
+    }
+    return r;
+  };
+  const union = (a: number, b: number) => {
+    parent[find(a)] = find(b);
+  };
+  const byName = new Map<string, number>();
+  const bySid = new Map<number, number>();
+  rows.forEach((p, i) => {
+    const nk = nmKey(p.player);
+    if (byName.has(nk)) union(i, byName.get(nk)!);
+    else byName.set(nk, i);
+    if (p.sofascore_id != null) {
+      if (bySid.has(p.sofascore_id)) union(i, bySid.get(p.sofascore_id)!);
+      else bySid.set(p.sofascore_id, i);
+    }
+  });
+  const comps = new Map<number, RawPlayer[]>();
+  rows.forEach((p, i) => {
+    const r = find(i);
+    (comps.get(r) ?? comps.set(r, []).get(r)!).push(p);
+  });
   const out: RawPlayer[] = [];
-  for (const g of groups.values()) {
+  for (const g of comps.values()) {
     if (g.length === 1) {
       out.push(g[0]!);
       continue;
     }
-    // Two distinct non-null Sofascore ids → different people who share a name, not
-    // a transfer; keep them separate.
+    // ≥2 distinct non-null Sofascore ids in one component → different people caught
+    // by a shared name; keep them separate (safe over-split in rare tangles).
     const ids = new Set(g.map((p) => p.sofascore_id).filter((x): x is number => x != null));
     if (ids.size > 1) out.push(...g);
     else out.push(mergeGroup(g, sofaTeam));
