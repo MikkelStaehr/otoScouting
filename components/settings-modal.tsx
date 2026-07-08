@@ -22,21 +22,60 @@ interface StatusResponse {
   };
 }
 
+type StepStatus = "pending" | "running" | "done" | "failed";
+interface IngestStatus {
+  running: boolean;
+  idle?: boolean;
+  mode?: string;
+  pid?: number;
+  startedAt?: number;
+  finishedAt?: number | null;
+  phase?: string;
+  phaseLabel?: string;
+  steps?: { key: string; status: StepStatus; seconds?: number }[];
+  leagues?: Record<string, StepStatus>;
+  logTail?: string[];
+  error?: string | null;
+}
+
+const STEP_LABEL: Record<string, string> = {
+  coefficients: "Liga-styrke",
+  sofascore: "Sofascore (xG)",
+  transfermarkt: "Markedsværdier",
+  fbref: "FBref (bio)",
+  heatmaps: "Heatmaps",
+  formations: "Formationer",
+};
+
 /** Dispatch from anywhere (e.g. the header gear) to open Settings. */
 export function openSettings() {
   window.dispatchEvent(new Event(OPEN_EVENT));
 }
 
+function fmtDur(ms: number): string {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function StatusDot({ status }: { status: StepStatus }) {
+  if (status === "done") return <span className="text-volt">✓</span>;
+  if (status === "failed") return <span className="text-red-400">✗</span>;
+  if (status === "running")
+    return <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-volt" />;
+  return <span className="inline-block h-2 w-2 rounded-full bg-ink-2" />;
+}
+
 export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [running, setRunning] = useState(false);
-  const [includeFbref, setIncludeFbref] = useState(false);
-  const [pct, setPct] = useState(0);
-  const [label, setLabel] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [includeSpatial, setIncludeSpatial] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [startErr, setStartErr] = useState<string | null>(null);
+  const [ingest, setIngest] = useState<IngestStatus | null>(null);
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const running = starting || !!ingest?.running;
 
   const open = useCallback(() => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -45,10 +84,10 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
   }, []);
 
   const close = useCallback(() => {
-    if (running) return; // don't close mid-refresh
+    // The run is detached — closing is safe, it keeps going and shows again on reopen.
     setVisible(false);
     closeTimer.current = setTimeout(() => setMounted(false), 180);
-  }, [running]);
+  }, []);
 
   useEffect(() => {
     function onOpen() {
@@ -65,8 +104,30 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
     };
   }, [open, close, mounted]);
 
-  // Poll the data status while the panel is open, so an in-progress ingest is
-  // visible live (counts climb as FBref lands each league).
+  // Poll the ingest progress file while the panel is open — a run started in a
+  // previous open (or a previous session) shows live, and survives closing.
+  const loadIngest = useCallback(() => {
+    return fetch("/api/ingest/status")
+      .then((r) => r.json())
+      .then((d: IngestStatus) => setIngest(d))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    let alive = true;
+    const tick = () => {
+      if (alive) loadIngest();
+    };
+    tick();
+    const id = setInterval(tick, 1500);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [mounted, loadIngest]);
+
+  // Poll the data-loaded status too, so counts climb live as leagues land.
   useEffect(() => {
     if (!mounted) return;
     let alive = true;
@@ -85,58 +146,50 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
     };
   }, [mounted]);
 
-  async function refresh() {
-    setRunning(true);
-    setError(null);
-    setPct(2);
-    setLabel("Starter…");
-    let hadError = false;
+  async function startIngest(mode: string) {
+    setStarting(true);
+    setStartErr(null);
     try {
-      const res = await fetch("/api/refresh", {
+      const res = await fetch("/api/ingest/start", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ includeFbref }),
+        body: JSON.stringify({ mode }),
       });
-      if (!res.body) throw new Error("ingen stream");
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      let buf = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += dec.decode(value, { stream: true });
-        const lines = buf.split("\n");
-        buf = lines.pop() ?? "";
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          const e = JSON.parse(line) as { stage: string; label: string; pct: number };
-          setPct(e.pct);
-          setLabel(e.label);
-          if (e.stage === "error") {
-            hadError = true;
-            setError(e.label);
-          }
-        }
-      }
+      const d = await res.json();
+      if (!res.ok) setStartErr(d.error ?? "kunne ikke starte");
     } catch (e) {
-      hadError = true;
-      setError((e as Error).message);
-    }
-    setRunning(false);
-    if (!hadError) {
-      setLabel("Færdig — genindlæser…");
-      setTimeout(() => location.reload(), 900);
+      setStartErr((e as Error).message);
+    } finally {
+      setStarting(false);
+      loadIngest();
     }
   }
 
   if (!mounted) return null;
+
+  const steps = ingest?.steps ?? [];
+  const doneCount = steps.filter((s) => s.status === "done").length;
+  const runCount = steps.filter((s) => s.status === "running").length;
+  const pct = steps.length
+    ? Math.round(((doneCount + 0.5 * runCount) / steps.length) * 100)
+    : running
+      ? 4
+      : 0;
+  const leagues = ingest?.leagues ? Object.entries(ingest.leagues) : [];
+  const showLeagues = leagues.length > 0 && steps.some((s) => s.key === "fbref");
+  const elapsed =
+    ingest?.startedAt != null
+      ? fmtDur((ingest.finishedAt ?? Date.now()) - ingest.startedAt)
+      : null;
+  const finishedRecently =
+    !running && ingest?.finishedAt != null && Date.now() - ingest.finishedAt < 5 * 60_000;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Indstillinger"
-      className="fixed inset-0 z-[55] flex items-start justify-center px-4 pt-[14vh]"
+      className="fixed inset-0 z-[55] flex items-start justify-center px-4 pt-[10vh]"
     >
       <button
         aria-label="Luk"
@@ -148,7 +201,7 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
       />
 
       <div
-        className={`relative w-full max-w-md overflow-hidden rounded-2xl border border-line-2 bg-panel/95 shadow-2xl shadow-black/60 transition duration-200 ${
+        className={`relative flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-line-2 bg-panel/95 shadow-2xl shadow-black/60 transition duration-200 ${
           visible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-[0.985] opacity-0"
         }`}
       >
@@ -156,17 +209,15 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
           <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-muted">
             Indstillinger
           </h2>
-          {!running && (
-            <button
-              onClick={close}
-              className="rounded-md border border-line-2 px-2 py-0.5 font-mono text-[11px] text-muted transition-colors hover:text-fg"
-            >
-              esc
-            </button>
-          )}
+          <button
+            onClick={close}
+            className="rounded-md border border-line-2 px-2 py-0.5 font-mono text-[11px] text-muted transition-colors hover:text-fg"
+          >
+            esc
+          </button>
         </div>
 
-        <div className="p-5">
+        <div className="overflow-y-auto p-5">
           {/* Live data status — which leagues are loaded, counts climb during ingest */}
           {status && (
             <div className="mb-5">
@@ -178,7 +229,7 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
                   <span className="text-fg">{status.totals.players}</span> spillere
                 </div>
               </div>
-              <div className="mt-2 max-h-56 divide-y divide-line/40 overflow-y-auto rounded-lg border border-line-2">
+              <div className="mt-2 max-h-44 divide-y divide-line/40 overflow-y-auto rounded-lg border border-line-2">
                 {status.leagues.map((l) => (
                   <div
                     key={l.league}
@@ -207,61 +258,154 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
                   </div>
                 ))}
               </div>
-              <p className="mt-1.5 font-mono text-[10px] text-faint">
-                Live · sp = spillere (FBref), h = hold (Sofascore) · gråt = mangler endnu
-              </p>
             </div>
           )}
 
-          <div className="text-sm font-medium text-fg">Opdater data</div>
-          <p className="mt-1 text-xs text-muted">
-            Henter Sofascore (xG / rich data) for alle ligaer på ny — typisk
-            ~30&nbsp;sek. Forrige hentning gemmes som snapshot, så du har et
-            sammenligningsgrundlag.
-          </p>
-          <p className="mt-2 font-mono text-[11px] text-faint">
-            Sidst opdateret: {lastUpdated ? lastUpdated.replace("T", " ") : "—"}
-          </p>
-
-          <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-muted">
-            <input
-              type="checkbox"
-              checked={includeFbref}
-              disabled={running}
-              onChange={(e) => setIncludeFbref(e.target.checked)}
-              className="mt-0.5 accent-volt"
-            />
-            <span>
-              Inkl. FBref (position/alder/nationalitet) —{" "}
-              <span className="text-faint">meget langsom (~1 t for alle 16 ligaer), sjældent nødvendigt</span>
+          <div className="flex items-baseline justify-between">
+            <div className="text-sm font-medium text-fg">Opdater data</div>
+            <span className="font-mono text-[10px] text-faint">
+              sidst: {lastUpdated ? lastUpdated.replace("T", " ").slice(0, 16) : "—"}
             </span>
-          </label>
+          </div>
 
-          <button
-            onClick={refresh}
-            disabled={running}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-volt px-4 py-2.5 text-sm font-semibold text-ink transition-opacity disabled:opacity-50"
-          >
-            {running ? "Henter…" : "⟳ Opdater data nu"}
-          </button>
-
-          {(running || pct > 0) && (
-            <div className="mt-4">
-              <div className="h-2 w-full overflow-hidden rounded-full bg-ink-2">
-                <div
-                  className={`h-full rounded-full bg-volt transition-all duration-500 ${
-                    running ? "animate-pulse" : ""
+          {/* ── Live progress (while a run is going, or just finished) ── */}
+          {(running || finishedRecently) && ingest && (
+            <div className="mt-3 rounded-xl border border-line-2 bg-ink/30 p-4">
+              <div className="flex items-baseline justify-between">
+                <span
+                  className={`font-mono text-[11px] ${
+                    ingest.error ? "text-red-400" : running ? "text-volt" : "text-muted"
                   }`}
-                  style={{ width: `${pct}%` }}
+                >
+                  {ingest.error
+                    ? `Fejl: ${ingest.error}`
+                    : running
+                      ? ingest.phaseLabel || "Arbejder…"
+                      : "Færdig ✓"}
+                </span>
+                {elapsed && <span className="font-mono text-[10px] text-faint">{elapsed}</span>}
+              </div>
+
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-ink-2">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    ingest.error ? "bg-red-400" : "bg-volt"
+                  } ${running ? "animate-pulse" : ""}`}
+                  style={{ width: `${Math.max(pct, running ? 4 : 0)}%` }}
                 />
               </div>
-              <p
-                className={`mt-2 font-mono text-[11px] ${
-                  error ? "text-red-400" : "text-muted"
-                }`}
-              >
-                {error ? `Fejl: ${error}` : label}
+
+              {/* Step ledger */}
+              {steps.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+                  {steps.map((s) => (
+                    <span
+                      key={s.key}
+                      className="flex items-center gap-1.5 font-mono text-[11px] text-muted"
+                    >
+                      <StatusDot status={s.status} />
+                      {STEP_LABEL[s.key] ?? s.key}
+                      {s.seconds != null && (
+                        <span className="text-faint">{s.seconds}s</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Per-league FBref grid (with retry on the failed ones) */}
+              {showLeagues && (
+                <div className="mt-3 max-h-32 overflow-y-auto rounded-lg border border-line/60 p-2">
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    {leagues.map(([key, st]) => (
+                      <span
+                        key={key}
+                        className="flex items-center justify-between gap-1 font-mono text-[10px]"
+                      >
+                        <span className="flex items-center gap-1.5 truncate">
+                          <StatusDot status={st} />
+                          <span className={st === "failed" ? "text-red-400" : "text-muted"}>
+                            {key}
+                          </span>
+                        </span>
+                        {st === "failed" && !running && (
+                          <button
+                            onClick={() => startIngest(`league:${key}`)}
+                            className="shrink-0 text-volt hover:underline"
+                          >
+                            igen
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Log tail */}
+              {ingest.logTail && ingest.logTail.length > 0 && (
+                <pre className="mt-3 max-h-24 overflow-y-auto whitespace-pre-wrap break-words rounded-lg bg-black/30 p-2 font-mono text-[10px] leading-relaxed text-faint">
+                  {ingest.logTail.slice(-8).join("\n")}
+                </pre>
+              )}
+
+              {running && (
+                <p className="mt-2 font-mono text-[10px] text-faint">
+                  Kører i baggrunden — du kan lukke vinduet, den fortsætter.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* ── Triggers (hidden while a run is live) ── */}
+          {!running && (
+            <div className="mt-3">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => startIngest(includeSpatial ? "all-spatial" : "all")}
+                  className="flex-1 rounded-lg bg-volt px-3 py-2.5 text-sm font-semibold text-ink transition-opacity hover:opacity-90"
+                >
+                  ⟳ Opdater alt
+                </button>
+                <button
+                  onClick={() => startIngest("sofascore")}
+                  className="rounded-lg border border-line-2 px-3 py-2.5 text-xs font-medium text-muted transition-colors hover:text-fg"
+                  title="Kun Sofascore — xG / form, hurtigst"
+                >
+                  Kun form/xG
+                </button>
+                <button
+                  onClick={() => startIngest("tm")}
+                  className="rounded-lg border border-line-2 px-3 py-2.5 text-xs font-medium text-muted transition-colors hover:text-fg"
+                  title="Kun Transfermarkt markedsværdier"
+                >
+                  Kun værdier
+                </button>
+              </div>
+
+              <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-muted">
+                <input
+                  type="checkbox"
+                  checked={includeSpatial}
+                  onChange={(e) => setIncludeSpatial(e.target.checked)}
+                  className="mt-0.5 accent-volt"
+                />
+                <span>
+                  Inkl. heatmaps + formationer —{" "}
+                  <span className="text-faint">
+                    to browser-scrapes, ~25 min hver. Uden dette tager “alt” ~10-15 min.
+                  </span>
+                </span>
+              </label>
+
+              <p className="mt-2 font-mono text-[10px] text-faint">
+                Forrige hentning gemmes som snapshot (Δ-sammenligning). Fejler en liga,
+                vises den ⚠️ ovenfor med “igen”.
               </p>
+
+              {startErr && (
+                <p className="mt-2 font-mono text-[11px] text-red-400">Fejl: {startErr}</p>
+              )}
             </div>
           )}
         </div>

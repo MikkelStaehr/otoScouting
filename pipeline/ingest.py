@@ -29,23 +29,64 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
+import progress
 from registry import load_leagues
 
 HERE = Path(__file__).resolve().parent
 PY = sys.executable
 
 
+def _run_capture(cmd: list[str], timeout: int | None) -> int:
+    """Spawn a sub-script, stream its stdout to the terminal AND the UI log-tail.
+    A wall-clock Timer enforces the timeout even on a silent hang (FBref throttles
+    without printing), which line-iterating stdout alone would miss."""
+    try:
+        proc = subprocess.Popen(
+            cmd, cwd=HERE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace", bufsize=1,
+        )
+    except Exception as e:
+        progress.log(f"! spawn failed: {e}")
+        return 1
+
+    timed_out = {"v": False}
+    timer = None
+    if timeout:
+        def _kill() -> None:
+            timed_out["v"] = True
+            try:
+                proc.kill()
+            except Exception:
+                pass
+        timer = threading.Timer(timeout, _kill)
+        timer.start()
+    try:
+        for line in proc.stdout:  # type: ignore[union-attr]
+            line = line.rstrip()
+            if line:
+                print(line, flush=True)
+                progress.log(line)
+        proc.wait()
+    finally:
+        if timer:
+            timer.cancel()
+
+    if timed_out["v"]:
+        msg = f"! timed out after {timeout}s — skipping"
+        print(f"  {msg}", flush=True)
+        progress.log(msg)
+        return 124
+    return proc.returncode
+
+
 def run(script_args: list[str], label: str, timeout: int | None = None) -> tuple[bool, float]:
     print(f"\n{'=' * 64}\n▶ {label}\n{'=' * 64}", flush=True)
     t = time.time()
-    try:
-        rc = subprocess.run([PY, *script_args], cwd=HERE, timeout=timeout).returncode
-    except subprocess.TimeoutExpired:
-        rc = 124  # FBref hung/throttled — killed, move on (retried in a later pass)
-        print(f"  ! timed out after {timeout}s — skipping", flush=True)
+    rc = _run_capture([PY, *script_args], timeout)
     dt = time.time() - t
     print(f"{'✓' if rc == 0 else '✗'} {label}  ({dt:.0f}s, exit {rc})", flush=True)
     return rc == 0, dt
@@ -93,43 +134,85 @@ def main() -> int:
 
     only = args.sofascore_only or args.fbref_only or args.spatial_only or args.tm_only
 
+    # Plan which high-level steps will run (mirrors the conditionals below) so the
+    # progress UI shows an accurate ledger from the first tick.
+    do_spatial = args.spatial_only or (not only and not args.no_spatial)
+    do_fbref = not args.sofascore_only and not args.spatial_only
+    planned: list[str] = []
+    if not args.no_coef and not args.fbref_only and not args.spatial_only:
+        planned.append("coefficients")
+    if not args.fbref_only and not args.spatial_only:
+        planned.append("sofascore")
+    if args.tm_only or (not args.sofascore_only and not args.fbref_only
+                        and not args.spatial_only and not args.no_tm):
+        planned.append("transfermarkt")
+    if do_fbref:
+        planned.append("fbref")
+    if do_spatial:
+        planned += ["heatmaps", "formations"]
+    mode = ("sofascore" if args.sofascore_only else "tm" if args.tm_only
+            else "spatial" if args.spatial_only else "fbref" if args.fbref_only
+            else f"league:{keys[0]}" if subset and len(keys) == 1
+            else "subset" if subset else "all")
+    progress.start(mode, planned, keys if do_fbref else [])
+
     # 1. league-strength coefficients (unless we're only doing FBref/spatial)
     if not args.no_coef and not args.fbref_only and not args.spatial_only:
-        results["coefficients"], _ = run(["update_coefficients.py"], "clubelo coefficients")
+        progress.phase("coefficients", "Liga-styrke koefficienter")
+        progress.step("coefficients", "running")
+        ok, dt = run(["update_coefficients.py"], "clubelo coefficients")
+        results["coefficients"] = ok
+        progress.step("coefficients", "done" if ok else "failed", dt)
 
     # 2. Sofascore — one call for the whole set (single Δ snapshot); per league when
     #    a subset is chosen (a first-run wizard pick — no prior snapshot to keep sane).
     if not args.fbref_only and not args.spatial_only:
+        progress.phase("sofascore", "Sofascore (xG / rich data)")
+        progress.step("sofascore", "running")
         if subset:
+            oks = []
             for lk in keys:
-                results[f"sofascore:{lk}"], _ = run(
-                    ["fetch_sofascore.py", "--league", lk, *db], f"Sofascore {lk}",
-                )
+                ok, _ = run(["fetch_sofascore.py", "--league", lk, *db], f"Sofascore {lk}")
+                results[f"sofascore:{lk}"] = ok
+                oks.append(ok)
+            progress.step("sofascore", "done" if all(oks) else "failed")
         else:
-            results["sofascore"], _ = run(
+            ok, dt = run(
                 ["fetch_sofascore.py", *db], "Sofascore (all leagues, one snapshot)",
             )
+            results["sofascore"] = ok
+            progress.step("sofascore", "done" if ok else "failed", dt)
 
     # 2b. Transfermarkt market values — light club-page scrape (cloudscraper, no
     #     browser, paced). Independent of Sofascore; skipped by --no-tm or the other
     #     *-only modes. Per league on a subset, one process otherwise.
     if args.tm_only or (not args.sofascore_only and not args.fbref_only
                         and not args.spatial_only and not args.no_tm):
+        progress.phase("transfermarkt", "Transfermarkt markedsværdier")
+        progress.step("transfermarkt", "running")
         if subset:
+            oks = []
             for lk in keys:
-                results[f"tm:{lk}"], _ = run(
+                ok, _ = run(
                     ["fetch_transfermarkt.py", "--league", lk, *db],
                     f"Transfermarkt {lk}", timeout=600,
                 )
+                results[f"tm:{lk}"] = ok
+                oks.append(ok)
+            progress.step("transfermarkt", "done" if all(oks) else "failed")
         else:
-            results["transfermarkt"], _ = run(
+            ok, dt = run(
                 ["fetch_transfermarkt.py", *db], "Transfermarkt (all leagues)", timeout=3600,
             )
+            results["transfermarkt"] = ok
+            progress.step("transfermarkt", "done" if ok else "failed", dt)
 
     # 3. FBref — per league, isolated + time-bounded. FBref throttles/hangs on
     #    big leagues, so cap each attempt and retry the stragglers in later passes
     #    (soccerdata caches successes, so a retry only re-hits what's missing).
     if not args.sofascore_only and not args.spatial_only:
+        progress.phase("fbref", "FBref (position / alder / nationalitet)")
+        progress.step("fbref", "running")
         pending = list(keys)
         for attempt in range(1, args.fbref_passes + 1):
             if not pending:
@@ -137,30 +220,41 @@ def main() -> int:
             print(f"\n### FBref pass {attempt}/{args.fbref_passes} — {len(pending)} league(s) ###", flush=True)
             still: list[str] = []
             for lk in pending:
+                progress.phase("fbref", f"FBref {lk} (pass {attempt}/{args.fbref_passes})")
+                progress.league(lk, "running")
                 ok, _ = run(
                     ["fetch.py", "--league", lk, "--no-archive", *db],
                     f"FBref {lk} (pass {attempt})",
                     timeout=args.fbref_timeout,
                 )
                 results[f"fbref:{lk}"] = ok
+                # failed-but-more-passes-left → queued (pending); failed-final → failed
+                progress.league(lk, "done" if ok else
+                                ("pending" if attempt < args.fbref_passes else "failed"))
                 if not ok:
                     still.append(lk)
             pending = still
         if pending:
             print(f"\nFBref still missing after {args.fbref_passes} passes: {', '.join(pending)}", flush=True)
+        progress.step("fbref", "done" if not pending else "failed")
 
     # 4-5. Spatial layer (browser scrapes) — season heatmaps + team formations.
     #     Sofascore-derived, so they run after the data is in. Slow (~20-30 min each
     #     across all leagues); both are per-league resilient. Skipped by --no-spatial
     #     or the *-only modes; --spatial-only runs just these.
-    do_spatial = args.spatial_only or (not only and not args.no_spatial)
     if do_spatial:
-        for script, label in (("fetch_heatmaps.py", "Season heatmaps"),
-                              ("fetch_formations.py", "Team formations")):
+        for step_key, script, label in (
+            ("heatmaps", "fetch_heatmaps.py", "Season heatmaps"),
+            ("formations", "fetch_formations.py", "Team formations"),
+        ):
+            progress.phase(step_key, f"{label} (browser, langsom)")
+            progress.step(step_key, "running")
             cmd = [script, *db]
             if args.league:
                 cmd += ["--league", args.league]
-            results[label.lower().replace(" ", "_")], _ = run(cmd, f"{label} (browser)", timeout=3600)
+            ok, dt = run(cmd, f"{label} (browser)", timeout=3600)
+            results[label.lower().replace(" ", "_")] = ok
+            progress.step(step_key, "done" if ok else "failed", dt)
 
     dt = time.time() - t0
     print(f"\n{'=' * 64}\nINGEST DONE in {dt / 60:.1f} min\n{'=' * 64}")
@@ -169,6 +263,7 @@ def main() -> int:
     fails = [k for k, ok in results.items() if not ok]
     if fails:
         print(f"\n{len(fails)} step(s) failed: {', '.join(fails)}")
+    progress.finish(error=", ".join(fails) if fails else None)
     return 1 if fails else 0
 
 

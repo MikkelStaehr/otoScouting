@@ -44,6 +44,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   (memoiséret matchning, cachet prepareRows, forrige snapshot loadet én gang)
 - **[2026-07-08](2026-07-08-performance-payload.md)** — Performance: "Alle ligaer"-payload
   60→22 MB + windowing (render 150 rækker, ikke 8.000)
+- **[2026-07-08](2026-07-08-ingest-ui.md)** — Opdater data fra appen: ingest-UI i
+  Indstillinger (detached run + live progress, status-fil)
 
 ## Tidslinje (kort)
 

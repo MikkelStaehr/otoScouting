@@ -51,3 +51,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# ingest progress (runtime, per-machine)
+pipeline/.ingest-status.json
+pipeline/*.tmp
