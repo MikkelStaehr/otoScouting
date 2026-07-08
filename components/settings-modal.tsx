@@ -176,7 +176,14 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
       ? 4
       : 0;
   const leagues = ingest?.leagues ? Object.entries(ingest.leagues) : [];
-  const showLeagues = leagues.length > 0 && steps.some((s) => s.key === "fbref");
+  // The per-league grid is FBref-specific — only show it once FBref is actually
+  // active, otherwise it's a wall of grey dots during the Sofascore/value phases.
+  const fbrefStep = steps.find((s) => s.key === "fbref");
+  const showLeagues =
+    leagues.length > 0 &&
+    (fbrefStep?.status === "running" ||
+      fbrefStep?.status === "done" ||
+      leagues.some(([, st]) => st !== "pending"));
   const elapsed =
     ingest?.startedAt != null
       ? fmtDur((ingest.finishedAt ?? Date.now()) - ingest.startedAt)
@@ -316,6 +323,9 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
               {/* Per-league FBref grid (with retry on the failed ones) */}
               {showLeagues && (
                 <div className="mt-3 max-h-32 overflow-y-auto rounded-lg border border-line/60 p-2">
+                  <div className="mb-1.5 font-mono text-[9px] uppercase tracking-wider text-faint">
+                    FBref pr. liga
+                  </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                     {leagues.map(([key, st]) => (
                       <span

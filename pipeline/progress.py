@@ -11,12 +11,17 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 import time
 from pathlib import Path
 
 STATUS_PATH = Path(__file__).resolve().parent / ".ingest-status.json"
 LOG_KEEP = 18  # rolling log-tail length shown in the UI
+
+# tqdm progress bars (soccerdata / ScraperFC) redraw with \r and draw a block-char
+# bar between pipes — ugly in the UI log. Keep the last redraw, drop the bar itself.
+_BAR = re.compile(r"\|[▀-▟ ]*\|")
 
 _state: dict = {}
 
@@ -78,7 +83,10 @@ def league(key: str, status: str) -> None:
 
 
 def log(line: str) -> None:
-    line = (line or "").strip()
+    # keep only the final \r-redraw, then strip the tqdm block-char bar
+    line = (line or "").replace("\r", "\n").rstrip().split("\n")[-1]
+    line = _BAR.sub(" ", line)
+    line = re.sub(r"\s{2,}", " ", line).strip()
     if not line:
         return
     tail = _state.setdefault("logTail", [])
