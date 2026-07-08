@@ -49,9 +49,14 @@ export default async function BoardPage({
       teamOptions[0] ??
       { league: ls.league, season: ls.season, season_label: ls.season_label };
 
-  const { players, xgMatched, xgTotal, comparedTo } = crossLeague
+  const board = crossLeague
     ? getCrossLeaguePlayers()
     : getEnrichedPlayers(selected.league, selected.season);
+  const { xgMatched, xgTotal, comparedTo } = board;
+  // Cross-league is the prospect finder — send only qualified players (>= minMinutes).
+  // Cuts the client payload ~30% and drops tiny-sample OUT=100 noise; single-league
+  // keeps the full roster (unqualified rendered dimmed).
+  const players = crossLeague ? board.players.filter((p) => p.qualified) : board.players;
   // Team percentiles are per-league, so the Hold board stays single-league.
   const teams = crossLeague ? [] : getTeams(selected.league, selected.season);
 
