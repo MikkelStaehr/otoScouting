@@ -200,6 +200,17 @@ export function PlayerModal() {
                 size="md"
               />
             )}
+            {detail && (
+              <a
+                href={`/report/${encodeURIComponent(detail.key)}`}
+                target="_blank"
+                rel="noreferrer"
+                title="Åbn scouting report (til print/PDF)"
+                className="rounded-md border border-line-2 px-2 py-1 font-mono text-[11px] text-muted transition-colors hover:border-volt/60 hover:text-volt"
+              >
+                Rapport ↗
+              </a>
+            )}
             {detail?.out != null && (
               <div className="text-right">
                 <div className="tnum text-2xl font-bold text-volt">{detail.out}</div>

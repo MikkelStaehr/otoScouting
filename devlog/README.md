@@ -38,6 +38,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   + "Ligner i big-5" (sammenlign dev-profil mod benchmark-spillere)
 - **[2026-07-08](2026-07-08-vaerdi-spaend.md)** — Værdi-spænd: comp-baseret værdisætning
   (peer-fordeling vs TM-værdi → upside/præmie-signal; retning = trend-linje)
+- **[2026-07-08](2026-07-08-scouting-report.md)** — Scouting report: eksporterbar spiller-
+  oneshot (auto-narrativ + værdi-spænd + profil), print-venlig til indslag
 
 ## Tidslinje (kort)
 
