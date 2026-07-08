@@ -10,8 +10,27 @@ const CONFIG_PATH = join(process.cwd(), "config", "leagues.json");
 
 export const ALL_LEAGUES = "ALL";
 
+interface LeagueEntry {
+  strength?: number;
+  benchmark?: boolean; // big-5: a benchmark/ceiling tier, not a scouting league
+}
 interface LeaguesConfig {
-  leagues: Record<string, { strength?: number }>;
+  leagues: Record<string, LeagueEntry>;
+}
+
+/** Benchmark (big-5) league keys — the ceiling tier, kept out of the cross-league
+ *  scouting pool so it doesn't crowd the development leagues you actually scout. */
+export function loadBenchmarkLeagues(): Set<string> {
+  try {
+    const raw = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as LeaguesConfig;
+    return new Set(
+      Object.entries(raw.leagues ?? {})
+        .filter(([, v]) => v.benchmark)
+        .map(([k]) => k),
+    );
+  } catch {
+    return new Set();
+  }
 }
 
 /** The full registry (all league keys, in order) — for the data-status view. */

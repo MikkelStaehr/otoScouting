@@ -23,6 +23,7 @@ Raise SPAN (lower FLOOR) to make strong leagues clearly outrank weak ones.
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 import statistics
 import sys
@@ -31,8 +32,11 @@ from pathlib import Path
 from registry import REGISTRY
 
 DB = Path(__file__).resolve().parent.parent / "scouting.db"
-FLOOR = 0.80  # weakest league's coefficient floor
-SPAN = 0.20   # FLOOR + SPAN = 1.0 for the strongest
+# Strength = FLOOR + (1-FLOOR) * (ln(median) - ln(min)) / (ln(max) - ln(min)).
+# LOG scale because median values span a ~200x range (Iceland ~€0.1m → Premier
+# League ~€20m); linear would flatten every development league to the floor.
+# The strongest league (a big-5) anchors 1.0; FLOOR is the weakest league's coef.
+FLOOR = 0.50
 MIN_VALUED = 30  # need this many valued players to trust a league's median
 
 
@@ -68,20 +72,22 @@ def main() -> int:
         print("No Transfermarkt values found — run pipeline/fetch_transfermarkt.py first.")
         return 1
 
-    top = max(med.values())
+    lo_ln, hi_ln = math.log(min(med.values())), math.log(max(med.values()))
+    span_ln = hi_ln - lo_ln or 1.0
     for lk, cfg in leagues.items():
         if lk not in med:
             print(f"  ! no Transfermarkt median for {lk} (<{MIN_VALUED} valued players) — left as-is")
             continue
+        frac = (math.log(med[lk]) - lo_ln) / span_ln
         cfg["medianValue"] = int(med[lk])
-        cfg["strength"] = round(FLOOR + SPAN * (med[lk] / top), 3)
+        cfg["strength"] = round(FLOOR + (1 - FLOOR) * frac, 3)
         cfg.pop("avgElo", None)  # drop the stale clubelo artifact
 
     # Provenance — replace the old clubelo block.
     data.pop("eloSource", None)
     data["strengthSource"] = {
         "provider": "transfermarkt",
-        "method": f"median player market value per league, mapped to {FLOOR}+{SPAN}*(median/strongest)",
+        "method": f"log(median market value) mapped to [{FLOOR}, 1.0], strongest league = 1.0",
     }
 
     REGISTRY.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", "utf-8")

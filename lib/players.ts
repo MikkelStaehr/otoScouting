@@ -5,7 +5,7 @@ import { statSync } from "node:fs";
 import { join } from "node:path";
 import { getDb } from "./db.ts";
 import { enrichPlayers, loadModelConfig } from "./model.ts";
-import { loadLeagueStrength } from "./league-config.ts";
+import { loadLeagueStrength, loadBenchmarkLeagues } from "./league-config.ts";
 import { matchSofascore } from "./merge.ts";
 import { transfermarktRows } from "./transfermarkt.ts";
 import type {
@@ -380,10 +380,15 @@ export function getCrossLeaguePlayers(): Board {
 
 function computeCrossLeaguePlayers(): Board {
   const strength = loadLeagueStrength();
+  // The benchmark (big-5) tier anchors the strength scale but is NOT scouted, so
+  // it stays out of the cross-league pool — otherwise elite players would crowd the
+  // development-league prospects the board is for.
+  const benchmark = loadBenchmarkLeagues();
   const allRows: RawPlayer[] = [];
   const deltas = new Map<string, Partial<Record<MetricKey, number>>>();
   let comparedTo: string | null = null;
   for (const ls of getLeagueSeasons()) {
+    if (benchmark.has(ls.league)) continue;
     const r = prepareRows(ls.league, ls.season);
     allRows.push(...r.rows);
     for (const [k, v] of r.deltas) deltas.set(k, v);

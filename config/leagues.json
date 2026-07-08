@@ -10,7 +10,7 @@
       "seasonEnd": "May",
       "clubelo": "DEN",
       "espn": "den.1",
-      "strength": 0.893,
+      "strength": 0.7,
       "transfermarkt": "DK1",
       "medianValue": 700000
     },
@@ -23,7 +23,7 @@
       "seasonEnd": "Dec",
       "clubelo": "NOR",
       "espn": "nor.1",
-      "strength": 0.867,
+      "strength": 0.665,
       "transfermarkt": "NO1",
       "medianValue": 500000
     },
@@ -36,7 +36,7 @@
       "seasonEnd": "Nov",
       "clubelo": "SWE",
       "espn": "swe.1",
-      "strength": 0.86,
+      "strength": 0.655,
       "transfermarkt": "SE1",
       "medianValue": 450000
     },
@@ -49,7 +49,7 @@
       "seasonEnd": "May",
       "clubelo": "NED",
       "espn": "ned.1",
-      "strength": 0.9,
+      "strength": 0.707,
       "transfermarkt": "NL1",
       "medianValue": 750000
     },
@@ -62,7 +62,7 @@
       "seasonEnd": "May",
       "clubelo": "POR",
       "espn": "por.1",
-      "strength": 0.933,
+      "strength": 0.737,
       "transfermarkt": "PO1",
       "medianValue": 1000000
     },
@@ -76,7 +76,7 @@
       "clubelo": "ENG",
       "clubeloLevel": 2,
       "espn": "eng.2",
-      "strength": 1.0,
+      "strength": 0.778,
       "transfermarkt": "GB2",
       "medianValue": 1500000
     },
@@ -90,7 +90,7 @@
       "clubelo": "GER",
       "clubeloLevel": 2,
       "espn": "ger.2",
-      "strength": 0.88,
+      "strength": 0.684,
       "transfermarkt": "L2",
       "medianValue": 600000
     },
@@ -103,7 +103,7 @@
       "seasonEnd": "May",
       "clubelo": "BEL",
       "espn": "bel.1",
-      "strength": 0.96,
+      "strength": 0.755,
       "transfermarkt": "BE1",
       "medianValue": 1200000
     },
@@ -116,7 +116,7 @@
       "seasonEnd": "May",
       "clubelo": "AUT",
       "espn": "aut.1",
-      "strength": 0.867,
+      "strength": 0.665,
       "transfermarkt": "A1",
       "medianValue": 500000
     },
@@ -129,7 +129,7 @@
       "seasonEnd": "May",
       "clubelo": "SUI",
       "espn": "sui.1",
-      "strength": 0.873,
+      "strength": 0.675,
       "transfermarkt": "C1",
       "medianValue": 550000
     },
@@ -142,7 +142,7 @@
       "seasonEnd": "May",
       "clubelo": "SCO",
       "espn": "sco.1",
-      "strength": 0.853,
+      "strength": 0.642,
       "transfermarkt": "SC1",
       "medianValue": 400000
     },
@@ -155,7 +155,7 @@
       "seasonEnd": "May",
       "clubelo": "POL",
       "espn": "pol.1",
-      "strength": 0.853,
+      "strength": 0.642,
       "transfermarkt": "PL1",
       "medianValue": 400000
     },
@@ -168,7 +168,7 @@
       "seasonEnd": "May",
       "clubelo": "CRO",
       "espn": "cro.1",
-      "strength": 0.847,
+      "strength": 0.629,
       "transfermarkt": "KR1",
       "medianValue": 350000
     },
@@ -181,7 +181,7 @@
       "seasonEnd": "May",
       "clubelo": "CZE",
       "espn": "cze.1",
-      "strength": 0.847,
+      "strength": 0.629,
       "transfermarkt": "TS1",
       "medianValue": 350000
     },
@@ -194,7 +194,7 @@
       "seasonEnd": "Oct",
       "clubelo": "FIN",
       "espn": "fin.1",
-      "strength": 0.82,
+      "strength": 0.542,
       "transfermarkt": "FI1",
       "medianValue": 150000
     },
@@ -207,7 +207,7 @@
       "seasonEnd": "Oct",
       "clubelo": "ISL",
       "espn": "isl.1",
-      "strength": 0.813,
+      "strength": 0.5,
       "transfermarkt": "IS1",
       "medianValue": 100000
     },
@@ -221,7 +221,7 @@
       "clubelo": "FRA",
       "clubeloLevel": 2,
       "espn": "fra.2",
-      "strength": 0.867,
+      "strength": 0.665,
       "transfermarkt": "FR2",
       "medianValue": 500000
     },
@@ -235,7 +235,7 @@
       "clubelo": "ESP",
       "clubeloLevel": 2,
       "espn": "esp.2",
-      "strength": 0.867,
+      "strength": 0.665,
       "transfermarkt": "ES2",
       "medianValue": 500000
     },
@@ -249,7 +249,7 @@
       "clubelo": "ITA",
       "clubeloLevel": 2,
       "espn": "ita.2",
-      "strength": 0.867,
+      "strength": 0.665,
       "transfermarkt": "IT2",
       "medianValue": 500000
     },
@@ -263,7 +263,7 @@
       "clubelo": "TUR",
       "clubeloLevel": 1,
       "espn": "tur.1",
-      "strength": 0.907,
+      "strength": 0.714,
       "transfermarkt": "TR1",
       "medianValue": 800000
     },
@@ -277,7 +277,7 @@
       "clubelo": "UKR",
       "clubeloLevel": 1,
       "espn": "ukr.1",
-      "strength": 0.853,
+      "strength": 0.642,
       "transfermarkt": "UKR1",
       "medianValue": 400000
     },
@@ -291,7 +291,7 @@
       "clubelo": "BUL",
       "clubeloLevel": 1,
       "espn": "bul.1",
-      "strength": 0.84,
+      "strength": 0.613,
       "transfermarkt": "BU1",
       "medianValue": 300000
     },
@@ -305,7 +305,7 @@
       "clubelo": "POR",
       "clubeloLevel": 2,
       "espn": "por.2",
-      "strength": 0.838,
+      "strength": 0.608,
       "transfermarkt": "PO2",
       "medianValue": 287500
     },
@@ -319,7 +319,7 @@
       "clubelo": "GRE",
       "clubeloLevel": 1,
       "espn": "gre.1",
-      "strength": 0.86,
+      "strength": 0.655,
       "transfermarkt": "GR1",
       "medianValue": 450000
     },
@@ -333,7 +333,7 @@
       "clubelo": "SRB",
       "clubeloLevel": 1,
       "espn": "srb.1",
-      "strength": 0.847,
+      "strength": 0.629,
       "transfermarkt": "SER1",
       "medianValue": 350000
     },
@@ -347,7 +347,7 @@
       "clubelo": "HUN",
       "clubeloLevel": 1,
       "espn": "hun.1",
-      "strength": 0.84,
+      "strength": 0.613,
       "transfermarkt": "UNG1",
       "medianValue": 300000
     },
@@ -361,7 +361,7 @@
       "clubelo": "ROU",
       "clubeloLevel": 1,
       "espn": "rou.1",
-      "strength": 0.84,
+      "strength": 0.613,
       "transfermarkt": "RO1",
       "medianValue": 300000
     },
@@ -375,7 +375,7 @@
       "clubelo": "SVK",
       "clubeloLevel": 1,
       "espn": "svk.1",
-      "strength": 0.823,
+      "strength": 0.557,
       "transfermarkt": "SLO1",
       "medianValue": 175000
     },
@@ -389,13 +389,83 @@
       "clubelo": "SVN",
       "clubeloLevel": 1,
       "espn": "svn.1",
-      "strength": 0.827,
+      "strength": 0.571,
       "transfermarkt": "SL1",
       "medianValue": 200000
+    },
+    "ENG-PremierLeague": {
+      "sofascore": 17,
+      "sofascoreSeason": "25/26",
+      "fbref": "ENG-Premier League",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "transfermarkt": "GB1",
+      "espn": "eng.1",
+      "benchmark": true,
+      "fbrefBuiltin": true,
+      "medianValue": 13000000,
+      "strength": 1.0
+    },
+    "ESP-LaLiga": {
+      "sofascore": 8,
+      "sofascoreSeason": "25/26",
+      "fbref": "ESP-La Liga",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "transfermarkt": "ES1",
+      "espn": "esp.1",
+      "benchmark": true,
+      "fbrefBuiltin": true,
+      "medianValue": 2500000,
+      "strength": 0.831
+    },
+    "ITA-SerieA": {
+      "sofascore": 23,
+      "sofascoreSeason": "25/26",
+      "fbref": "ITA-Serie A",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "transfermarkt": "IT1",
+      "espn": "ita.1",
+      "benchmark": true,
+      "fbrefBuiltin": true,
+      "medianValue": 3000000,
+      "strength": 0.849
+    },
+    "GER-Bundesliga": {
+      "sofascore": 35,
+      "sofascoreSeason": "25/26",
+      "fbref": "GER-Bundesliga",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "transfermarkt": "L1",
+      "espn": "ger.1",
+      "benchmark": true,
+      "fbrefBuiltin": true,
+      "medianValue": 4000000,
+      "strength": 0.879
+    },
+    "FRA-Ligue1": {
+      "sofascore": 34,
+      "sofascoreSeason": "25/26",
+      "fbref": "FRA-Ligue 1",
+      "fbrefSeason": "2025-2026",
+      "seasonStart": "Aug",
+      "seasonEnd": "May",
+      "transfermarkt": "FR1",
+      "espn": "fra.1",
+      "benchmark": true,
+      "fbrefBuiltin": true,
+      "medianValue": 4000000,
+      "strength": 0.879
     }
   },
   "strengthSource": {
     "provider": "transfermarkt",
-    "method": "median player market value per league, mapped to 0.8+0.2*(median/strongest)"
+    "method": "log(median market value) mapped to [0.5, 1.0], strongest league = 1.0"
   }
 }

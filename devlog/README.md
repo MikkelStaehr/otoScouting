@@ -32,6 +32,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   (samme liga) + cross-league-transfers, begge deduperet via Sofascore-id
 - **[2026-07-03](2026-07-03-styrke-fra-transfermarkt.md)** — Ligastyrke fra Transfermarkt-
   medianværdi (clubelo droppet: nede + ufuldstændig; r≈0,84, uafhængigt af eksterne servere)
+- **[2026-07-08](2026-07-08-big5-benchmark-tier.md)** — Big-5 som benchmark-tier: ankrer
+  styrke-skalaen til virkeligheden (log, PL=1,0), men holdt ude af scouting-puljen
 
 ## Tidslinje (kort)
 

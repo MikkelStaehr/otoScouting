@@ -39,6 +39,8 @@ CUSTOM_LEAGUES = {
         "season_end": cfg["seasonEnd"],
     }
     for lk, cfg in LEAGUES.items()
+    if not cfg.get("fbrefBuiltin")  # big-5 ship native in soccerdata; registering
+    # our key as a custom league shadows the built-in and breaks read_seasons.
 }
 
 
@@ -210,8 +212,12 @@ def main() -> int:
 
     ensure_leagues_registered()
 
+    # Big-5 are native to soccerdata under their FBref name; everything else uses
+    # our registered custom key (which league_dict maps to the FBref name).
+    cfg = LEAGUES[args.league]
+    fb_league = cfg["fbref"] if cfg.get("fbrefBuiltin") else args.league
     print(f"Fetching {args.league} {args.season} from FBref (soccerdata)…")
-    fb = sd.FBref(leagues=args.league, seasons=args.season)
+    fb = sd.FBref(leagues=fb_league, seasons=args.season)
 
     std = fb.read_player_season_stats(stat_type="standard")
     sho = fb.read_player_season_stats(stat_type="shooting")
