@@ -41,6 +41,15 @@ FBREF_ALIAS: dict[str, int] = {
     "hearts": 2353,                # Heart of Midlothian
     "djurgarden": 1759,            # Djurgårdens IF
     "halmstad": 1767,              # Halmstads BK
+    "wolves": 3,                   # Wolverhampton
+    "larissa": 3265,               # AEL (Larissa)
+    "debrecen": 1921,              # Debreceni VSC
+    "diosgyor": 5121,              # Diósgyőri VTK
+    "paks": 6059,                  # Paksi FC
+    "zalaegerszeg": 1922,          # Zalaegerszegi TE
+    "sibiu": 260356,               # FC Hermannstadt (Sibiu)
+    "epitsentr": 323552,           # FC Epicentr Dunaivtsi
+    "oleksandriya": 25479,         # Oleksandria
 }
 
 
