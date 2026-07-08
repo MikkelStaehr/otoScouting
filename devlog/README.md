@@ -40,6 +40,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   (peer-fordeling vs TM-værdi → upside/præmie-signal; retning = trend-linje)
 - **[2026-07-08](2026-07-08-scouting-report.md)** — Scouting report: eksporterbar spiller-
   oneshot (auto-narrativ + værdi-spænd + profil), print-venlig til indslag
+- **[2026-07-08](2026-07-08-performance-readlag.md)** — Performance: read-laget 17s→2s kold
+  (memoiséret matchning, cachet prepareRows, forrige snapshot loadet én gang)
 
 ## Tidslinje (kort)
 

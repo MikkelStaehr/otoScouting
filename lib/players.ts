@@ -64,44 +64,54 @@ function sofascoreRows(league: string, season: string): SofaRow[] {
   }
 }
 
-/** Previous Sofascore snapshot (for Δ vs last fetch), keyed by Sofascore id. */
-function previousSofascore(league: string): {
-  byId: Map<number, SofaRow>;
+// The previous Sofascore snapshot (for Δ vs last fetch), loaded ONCE for all
+// leagues and grouped by league — previousSofascore() was called per league, each
+// time aggregating MAX(snapshot_id) + scanning the whole ~28k-row history table,
+// which dominated the cold cross-league build. Cached on the data version.
+let prevSnapCache: {
+  version: string;
   createdAt: string | null;
-} {
+  byLeague: Map<string, Map<number, SofaRow>>;
+  all: Map<number, SofaRow> | null; // used when history predates the league column
+} | null = null;
+
+function loadPrevSnapshot() {
+  const version = dataVersion();
+  if (prevSnapCache && prevSnapCache.version === version) return prevSnapCache;
+  const empty = { version, createdAt: null, byLeague: new Map<string, Map<number, SofaRow>>(), all: null };
   try {
     const db = getDb();
-    const snap = db
-      .prepare(`SELECT MAX(snapshot_id) AS sid FROM sofascore_players_history`)
-      .get() as { sid: number | null };
-    if (!snap?.sid) return { byId: new Map(), createdAt: null };
-    // history may predate the league column; filter only if present.
-    const hasLeague = (
-      db.prepare(`PRAGMA table_info(sofascore_players_history)`).all() as {
-        name: string;
-      }[]
-    ).some((c) => c.name === "league");
-    const rows = (
-      hasLeague
-        ? db.prepare(
-            `SELECT player_id, xg, xa, goals_prevented FROM sofascore_players_history
-               WHERE snapshot_id = ? AND league = ?`,
-          ).all(snap.sid, league)
-        : db.prepare(
-            `SELECT player_id, xg, xa, goals_prevented FROM sofascore_players_history
-               WHERE snapshot_id = ?`,
-          ).all(snap.sid)
-    ) as unknown as SofaRow[];
-    const meta = db
-      .prepare(`SELECT created_at FROM snapshots WHERE id = ?`)
-      .get(snap.sid) as { created_at: string } | undefined;
-    return {
-      byId: new Map(rows.map((r) => [r.player_id, r])),
-      createdAt: meta?.created_at ?? null,
-    };
+    const snap = db.prepare(`SELECT MAX(snapshot_id) AS sid FROM sofascore_players_history`).get() as { sid: number | null };
+    if (!snap?.sid) return (prevSnapCache = empty);
+    const hasLeague = (db.prepare(`PRAGMA table_info(sofascore_players_history)`).all() as { name: string }[]).some((c) => c.name === "league");
+    const createdAt = (db.prepare(`SELECT created_at FROM snapshots WHERE id = ?`).get(snap.sid) as { created_at: string } | undefined)?.created_at ?? null;
+    const byLeague = new Map<string, Map<number, SofaRow>>();
+    let all: Map<number, SofaRow> | null = null;
+    if (hasLeague) {
+      const rows = db.prepare(
+        `SELECT player_id, xg, xa, goals_prevented, league FROM sofascore_players_history WHERE snapshot_id = ?`,
+      ).all(snap.sid) as unknown as (SofaRow & { league: string })[];
+      for (const r of rows) {
+        let m = byLeague.get(r.league);
+        if (!m) byLeague.set(r.league, (m = new Map()));
+        m.set(r.player_id, r);
+      }
+    } else {
+      const rows = db.prepare(
+        `SELECT player_id, xg, xa, goals_prevented FROM sofascore_players_history WHERE snapshot_id = ?`,
+      ).all(snap.sid) as unknown as SofaRow[];
+      all = new Map(rows.map((r) => [r.player_id, r]));
+    }
+    return (prevSnapCache = { version, createdAt, byLeague, all });
   } catch {
-    return { byId: new Map(), createdAt: null };
+    return (prevSnapCache = empty);
   }
+}
+
+/** Previous Sofascore snapshot for one league (for Δ vs last fetch), from the cache. */
+function previousSofascore(league: string): { byId: Map<number, SofaRow>; createdAt: string | null } {
+  const c = loadPrevSnapshot();
+  return { byId: c.all ?? c.byLeague.get(league) ?? new Map(), createdAt: c.createdAt };
 }
 
 export interface Board {
@@ -344,9 +354,27 @@ function assemble(
   return { players, xgMatched: xgPresent, xgTotal: rows.length, comparedTo };
 }
 
+// prepareRows (the FBref↔Sofascore↔Transfermarkt matching + stint merge) is the
+// read-layer's heaviest step. Both the single-league board and the two cross-league
+// pools (dev-only and full) prepare the same leagues, so cache the result per
+// (league, season), keyed on the data version. Callers must not mutate the rows.
+let prepCache: { version: string; map: Map<string, ReturnType<typeof prepareRows>> } | null = null;
+
+function preparedRows(league: string, season: string): ReturnType<typeof prepareRows> {
+  const version = dataVersion();
+  if (!prepCache || prepCache.version !== version) prepCache = { version, map: new Map() };
+  const k = `${league}::${season}`;
+  let r = prepCache.map.get(k);
+  if (!r) {
+    r = prepareRows(league, season);
+    prepCache.map.set(k, r);
+  }
+  return r;
+}
+
 /** Enriched players for a league-season + Sofascore xG merged in, ranked by OUT. */
 export function getEnrichedPlayers(league: string, season: string): Board {
-  const { rows, deltas, comparedTo } = prepareRows(league, season);
+  const { rows, deltas, comparedTo } = preparedRows(league, season);
   return assemble(rows, deltas, comparedTo);
 }
 
@@ -402,7 +430,7 @@ function computeCrossLeaguePlayers(includeBenchmark: boolean): Board {
   let comparedTo: string | null = null;
   for (const ls of getLeagueSeasons()) {
     if (benchmark.has(ls.league)) continue;
-    const r = prepareRows(ls.league, ls.season);
+    const r = preparedRows(ls.league, ls.season);
     allRows.push(...r.rows);
     for (const [k, v] of r.deltas) deltas.set(k, v);
     comparedTo = comparedTo ?? r.comparedTo;
@@ -432,9 +460,12 @@ function computeCrossLeaguePlayers(includeBenchmark: boolean): Board {
     }
     if (seen.has(p.sofascore_id)) continue;
     seen.add(p.sofascore_id);
-    const keep = keeper.get(p.sofascore_id)!;
+    const keep0 = keeper.get(p.sofascore_id)!;
     const extra = otherClubs.get(p.sofascore_id);
-    if (extra?.length) keep.season_teams = [...new Set([...(keep.season_teams ?? [keep.team]), ...extra])];
+    // Clone (never mutate the cached prepared row) when folding in the other club.
+    const keep = extra?.length
+      ? { ...keep0, season_teams: [...new Set([...(keep0.season_teams ?? [keep0.team]), ...extra])] }
+      : keep0;
     rows.push(keep);
   }
   return assemble(rows, deltas, comparedTo, (p) => strength[p.league] ?? 1);
