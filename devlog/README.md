@@ -30,6 +30,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   matcher (genbruger Sofascore-merge) + Værdi-kolonne + spillerkort — value-per-output live
 - **[2026-07-03](2026-07-03-dedup-spillere.md)** — Dublet-spillere: FBref-dobbeltlistning
   (samme liga) + cross-league-transfers, begge deduperet via Sofascore-id
+- **[2026-07-03](2026-07-03-styrke-fra-transfermarkt.md)** — Ligastyrke fra Transfermarkt-
+  medianværdi (clubelo droppet: nede + ufuldstændig; r≈0,84, uafhængigt af eksterne servere)
 
 ## Tidslinje (kort)
 
