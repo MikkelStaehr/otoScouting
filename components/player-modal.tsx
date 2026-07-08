@@ -32,6 +32,10 @@ interface SimilarPlayer {
 interface HeatmapData { w: number; h: number; grid: number[]; nPoints: number; matches: number | null }
 interface RoleFit { role: string; conf: number; why: string[] }
 interface RoleResult { bucket: string; primary: RoleFit | null; secondary: RoleFit | null }
+interface ValueSpread {
+  value: number | null; p25: number; median: number; p75: number; peerCount: number;
+  topPeers: { key: string; player: string; team: string; league: string; value: number; sim: number }[];
+}
 interface PlayerDetail {
   key: string; sid: number | null; player: string; team: string; league: string;
   age: number | null; pos: string | null; posGroup: string;
@@ -42,6 +46,7 @@ interface PlayerDetail {
   role: RoleResult | null;
   heatmap: HeatmapData | null;
   groups: SimGroup[]; similar: SimilarPlayer[]; benchmarkSimilar: SimilarPlayer[];
+  valueSpread: ValueSpread | null;
 }
 
 const PCT_KEYS = new Set([
@@ -230,6 +235,39 @@ export function PlayerModal() {
                 </div>
               )}
 
+              {/* value spread — comp-based value band vs the player's own TM value */}
+              {detail.valueSpread && (
+                <div className="mb-5 rounded-xl border border-line bg-panel/20 p-4">
+                  <div className="mb-2.5 flex items-center justify-between gap-2">
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-faint">
+                      Værdi-spænd · {detail.valueSpread.peerCount} ligemænd (profil + alder)
+                    </span>
+                    <span className="text-sm">
+                      <span className="text-faint">performer som </span>
+                      <span className="font-semibold text-volt">{fmtValue(detail.valueSpread.median)}</span>
+                      <span className="text-faint">-profiler</span>
+                    </span>
+                  </div>
+                  <ValueSpreadBar vs={detail.valueSpread} />
+                  {detail.valueSpread.topPeers.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {detail.valueSpread.topPeers.map((p) => (
+                        <button
+                          key={p.key}
+                          onClick={() => load(p.key)}
+                          className="flex items-center gap-1.5 rounded-md border border-line-2 bg-ink/40 px-2 py-1 text-xs transition-colors hover:border-volt/50"
+                        >
+                          <TeamLogo team={p.team} />
+                          <span className="text-fg">{p.player}</span>
+                          <span className="font-mono text-[10px] text-faint">{p.league.slice(0, 3)}</span>
+                          <span className="tnum font-mono text-[10px] font-semibold text-volt">{fmtValue(p.value)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-12">
                 {detail.heatmap && (
                   <div className="lg:col-span-5">
@@ -363,6 +401,43 @@ export function PlayerModal() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ValueSpreadBar({ vs }: { vs: ValueSpread }) {
+  const val = vs.value;
+  const lo = Math.min(vs.p25, val ?? vs.p25) * 0.85;
+  const hi = Math.max(vs.p75, val ?? vs.p75) * 1.12;
+  const pos = (x: number) => Math.max(0, Math.min(100, ((x - lo) / (hi - lo)) * 100));
+  const under = val != null && val < vs.median;
+  const premium = val != null && val > vs.p75;
+  return (
+    <div>
+      <div className="relative h-2 rounded-full bg-ink">
+        <div
+          className="absolute top-0 h-2 rounded-full bg-volt/25"
+          style={{ left: `${pos(vs.p25)}%`, width: `${Math.max(0, pos(vs.p75) - pos(vs.p25))}%` }}
+        />
+        <div className="absolute top-[-2px] h-3 w-px bg-fg" style={{ left: `${pos(vs.median)}%` }} />
+        {val != null && (
+          <div
+            className={`absolute top-[-3px] h-4 w-4 -translate-x-1/2 rounded-full border-2 border-ink ${premium ? "bg-clay" : under ? "bg-volt" : "bg-fg"}`}
+            style={{ left: `${pos(val)}%` }}
+            title={`TM ${fmtValue(val)}`}
+          />
+        )}
+      </div>
+      <div className="mt-1.5 flex justify-between font-mono text-[10px] text-faint">
+        <span>{fmtValue(vs.p25)}</span>
+        <span>median {fmtValue(vs.median)}</span>
+        <span>{fmtValue(vs.p75)}</span>
+      </div>
+      {val != null && (
+        <div className={`mt-1.5 font-mono text-[11px] ${premium ? "text-clay" : under ? "text-volt" : "text-muted"}`}>
+          TM {fmtValue(val)} — {premium ? "over ligemænd · markeds-præmie (hype/platform)" : under ? "under medianen · potentiel upside" : "på linje med ligemænd"}
+        </div>
+      )}
     </div>
   );
 }

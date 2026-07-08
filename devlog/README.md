@@ -36,6 +36,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   styrke-skalaen til virkeligheden (log, PL=1,0), men holdt ude af scouting-puljen
 - **[2026-07-08](2026-07-08-sammenlign-mod-big5.md)** — FBref-huller lukket (POL/GRE/Serie A)
   + "Ligner i big-5" (sammenlign dev-profil mod benchmark-spillere)
+- **[2026-07-08](2026-07-08-vaerdi-spaend.md)** — Værdi-spænd: comp-baseret værdisætning
+  (peer-fordeling vs TM-værdi → upside/præmie-signal; retning = trend-linje)
 
 ## Tidslinje (kort)
 

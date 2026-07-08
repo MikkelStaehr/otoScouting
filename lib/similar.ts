@@ -51,6 +51,18 @@ export interface FlatStat {
   value: number | null;
   pct?: boolean; // render as a percentage
 }
+/** Comp-based value band: what this player's statistical + age peers (across the
+ *  full pool incl. big-5) are worth on Transfermarkt. The gap between his own value
+ *  and the peer median is the signal — below = potential upside, above = a market
+ *  premium (hype/platform the stats don't capture). */
+export interface ValueSpread {
+  value: number | null; // his own TM market value (euros)
+  p25: number; // peer 25th percentile value
+  median: number; // peer median = the performance-implied value
+  p75: number; // peer 75th percentile
+  peerCount: number;
+  topPeers: { key: string; player: string; team: string; league: string; value: number; sim: number }[];
+}
 export interface PlayerDetail {
   key: string;
   sid: number | null; // sofascore_id (stable id for watchlists)
@@ -71,6 +83,7 @@ export interface PlayerDetail {
   groups: SimGroup[];
   similar: SimilarPlayer[];
   benchmarkSimilar: SimilarPlayer[]; // closest big-5 players ("plays like PL X")
+  valueSpread: ValueSpread | null; // comp-based value band (null if too few peers)
 }
 
 /** Closest players to `target` within `candidates` (same class/position), by RMSE
@@ -123,6 +136,65 @@ function similarTo(
     }));
 }
 
+/** Value band from statistical + age peers (same position, ±2 years, ≥900 min) that
+ *  carry a market value — a comp valuation. Null if fewer than 5 peers. */
+function computeValueSpread(
+  target: EnrichedPlayer,
+  pool: EnrichedPlayer[],
+  isGk: boolean,
+  grp: string,
+): ValueSpread | null {
+  const simKeys = isGk ? SIM_GK : SIM_OUTFIELD;
+  const tv = simKeys.map((k) => target.percentile[k]);
+  const selfKey = `${target.team}::${target.player}`;
+  const scored = pool
+    .filter(
+      (p) =>
+        `${p.team}::${p.player}` !== selfKey &&
+        (p.gk_saves != null) === isGk &&
+        (isGk || posGroup(p.pos) === grp) &&
+        (p.minutes ?? 0) >= 900 &&
+        p.market_value != null &&
+        Math.abs((p.age ?? 99) - (target.age ?? 0)) <= 2,
+    )
+    .map((p) => {
+      const pv = simKeys.map((k) => p.percentile[k]);
+      let sum = 0;
+      let n = 0;
+      for (let i = 0; i < simKeys.length; i++) {
+        const a = tv[i];
+        const b = pv[i];
+        if (a != null && b != null) {
+          sum += (a - b) ** 2;
+          n++;
+        }
+      }
+      if (n < Math.min(6, simKeys.length)) return null;
+      return { p, sim: Math.max(0, Math.round(100 - Math.sqrt(sum / n))) };
+    })
+    .filter((x): x is { p: EnrichedPlayer; sim: number } => x != null)
+    .sort((a, b) => b.sim - a.sim)
+    .slice(0, 25);
+  if (scored.length < 5) return null;
+  const vals = scored.map((x) => x.p.market_value as number).sort((a, b) => a - b);
+  const q = (f: number) => vals[Math.floor(f * (vals.length - 1))]!;
+  return {
+    value: target.market_value ?? null,
+    p25: q(0.25),
+    median: q(0.5),
+    p75: q(0.75),
+    peerCount: scored.length,
+    topPeers: scored.slice(0, 5).map((x) => ({
+      key: `${x.p.team}::${x.p.player}`,
+      player: x.p.player,
+      team: x.p.team,
+      league: x.p.league,
+      value: x.p.market_value as number,
+      sim: x.sim,
+    })),
+  };
+}
+
 export function getPlayerDetail(key: string): PlayerDetail | null {
   const dev = getCrossLeaguePlayers().players;
   const full = getFullPoolPlayers().players;
@@ -146,6 +218,9 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
   const benchmarkSimilar = fullTarget
     ? similarTo(fullTarget, full.filter((p) => benchmarkLeagues.has(p.league)), isGk, grp, 5)
     : [];
+
+  // Value band from statistical + age peers across the full pool (dev + big-5).
+  const valueSpread = fullTarget ? computeValueSpread(fullTarget, full, isGk, grp) : null;
 
   const config = loadModelConfig();
   const displayGroups: GroupKey[] = isGk
@@ -198,5 +273,6 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     groups,
     similar,
     benchmarkSimilar,
+    valueSpread,
   };
 }
