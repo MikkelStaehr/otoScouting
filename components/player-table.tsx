@@ -88,6 +88,10 @@ export function PlayerTable({
   const [compareKeys, setCompareKeys] = useState<string[]>([]);
   const [comparing, setComparing] = useState(false);
   const bodyRef = useRef<HTMLTableSectionElement>(null);
+  // Windowing: the cross-league board has ~8k rows; rendering them all is the
+  // client bottleneck. Render the first N and grow as the sentinel scrolls in.
+  const [renderLimit, setRenderLimit] = useState(150);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // ── Filterable fields: age + minutes, plus every metric across all groups ──
   const metricGroup = useMemo(() => {
@@ -257,6 +261,23 @@ export function PlayerTable({
     return arr;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtered, sortKey, sortDir, mode]);
+
+  // A new sort/filter → show from the top again; grow the window as the sentinel
+  // (below the rendered rows) scrolls into view.
+  useEffect(() => setRenderLimit(150), [sorted]);
+  const shown = useMemo(() => sorted.slice(0, renderLimit), [sorted, renderLimit]);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) setRenderLimit((n) => (n < sorted.length ? n + 200 : n));
+      },
+      { rootMargin: "800px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [sorted.length]);
 
   function toggleSort(key: string, isText = false) {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -477,7 +498,7 @@ export function PlayerTable({
               </tr>
             </thead>
             <tbody ref={bodyRef}>
-              {sorted.map((p, i) => {
+              {shown.map((p, i) => {
                 const key = `${p.team}::${p.player}`;
                 const primaryPos = (p.pos ?? "").split(",")[0]?.trim() || "—";
                 return (
@@ -548,7 +569,7 @@ export function PlayerTable({
             </tr>
           </thead>
           <tbody ref={bodyRef}>
-            {sorted.map((p, i) => {
+            {shown.map((p, i) => {
               const key = `${p.team}::${p.player}`;
               const isFocus = focusKey === key;
               return (
@@ -611,6 +632,14 @@ export function PlayerTable({
           </p>
         )}
       </div>
+      )}
+
+      {/* Windowing: this sentinel grows the rendered window as it scrolls near. */}
+      <div ref={sentinelRef} aria-hidden className="h-px" />
+      {shown.length < sorted.length && (
+        <p className="py-3 text-center font-mono text-[11px] text-faint">
+          viser {shown.length} af {sorted.length} · scroll for flere
+        </p>
       )}
 
       {/* Compare tray */}

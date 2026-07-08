@@ -42,6 +42,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   oneshot (auto-narrativ + værdi-spænd + profil), print-venlig til indslag
 - **[2026-07-08](2026-07-08-performance-readlag.md)** — Performance: read-laget 17s→2s kold
   (memoiséret matchning, cachet prepareRows, forrige snapshot loadet én gang)
+- **[2026-07-08](2026-07-08-performance-payload.md)** — Performance: "Alle ligaer"-payload
+  60→22 MB + windowing (render 150 rækker, ikke 8.000)
 
 ## Tidslinje (kort)
 
