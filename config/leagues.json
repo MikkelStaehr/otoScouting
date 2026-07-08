@@ -369,14 +369,13 @@
     "ITA-SerieA": {
       "sofascore": 23,
       "sofascoreSeason": "25/26",
-      "fbref": "ITA-Serie A",
+      "fbref": "Serie A (M)",
       "fbrefSeason": "2025-2026",
       "seasonStart": "Aug",
       "seasonEnd": "May",
       "transfermarkt": "IT1",
       "espn": "ita.1",
       "benchmark": true,
-      "fbrefBuiltin": true,
       "medianValue": 3000000,
       "strength": 0.836
     },

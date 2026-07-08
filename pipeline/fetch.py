@@ -25,6 +25,23 @@ import soccerdata as sd
 from registry import load_leagues
 from snapshots import archive
 
+# soccerdata's read_player_season_stats unconditionally drops the "Matches" and
+# "Rk" column groups, but smaller leagues' FBref tables (e.g. Ekstraklasa, Super
+# League Greece) don't have them → KeyError, no players fetched. Make a drop of a
+# missing label a no-op (only when it would otherwise raise) so those leagues work.
+_orig_drop = pd.DataFrame.drop
+
+
+def _safe_drop(self, labels=None, *args, **kwargs):  # type: ignore[no-untyped-def]
+    try:
+        return _orig_drop(self, labels, *args, **kwargs)
+    except KeyError:
+        kwargs["errors"] = "ignore"
+        return _orig_drop(self, labels, *args, **kwargs)
+
+
+pd.DataFrame.drop = _safe_drop  # type: ignore[method-assign]
+
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = Path(__file__).resolve().parent / "schema.sql"
 
