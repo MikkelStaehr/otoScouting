@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import db as _pdb
 import ssl
 import urllib.request
 from pathlib import Path
@@ -74,7 +75,7 @@ def main() -> int:
     reg = load_leagues()
     picked = args.leagues.split(",") if args.leagues else list(reg)
 
-    conn = sqlite3.connect(ROOT / "scouting.db")
+    conn = _pdb.connect(ROOT / "scouting.db")
     mapping: dict[str, str] = {}
     if OUT.exists():
         try:

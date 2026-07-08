@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import math
 import sqlite3
+import db as _pdb
 import statistics
 import sys
 from pathlib import Path
@@ -42,7 +43,7 @@ MIN_VALUED = 30  # need this many valued players to trust a league's median
 
 def median_values() -> dict[str, float]:
     """league -> median market value (euros), over valued players in the DB."""
-    conn = sqlite3.connect(DB)
+    conn = _pdb.connect(DB)
     out: dict[str, float] = {}
     for (lk,) in conn.execute("SELECT DISTINCT league FROM transfermarkt_players"):
         vals = [

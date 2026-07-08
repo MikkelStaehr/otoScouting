@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import db as _pdb
 import sys
 from pathlib import Path
 
@@ -285,7 +286,7 @@ def main() -> int:
 
     # Write the DB from schema.sql, then insert.
     db_path = Path(args.db)
-    conn = sqlite3.connect(db_path)
+    conn = _pdb.connect(db_path)
     try:
         if not args.no_archive:
             archive(conn, "players", "fbref", args.season)  # keep previous fetch

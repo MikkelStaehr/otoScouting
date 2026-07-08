@@ -17,6 +17,7 @@ import base64
 import json
 import re
 import sqlite3
+import db as _pdb
 import sys
 import unicodedata
 from pathlib import Path
@@ -114,7 +115,7 @@ def main() -> int:
         pass
 
     LOGO_DIR.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(ROOT / "scouting.db")
+    conn = _pdb.connect(ROOT / "scouting.db")
     sofas = conn.execute(
         "SELECT league, team, sofascore_team_id FROM sofascore_teams"
     ).fetchall()

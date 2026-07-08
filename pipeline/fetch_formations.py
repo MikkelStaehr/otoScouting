@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import db as _pdb
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -108,7 +109,7 @@ def main() -> int:
 
     leagues = load_leagues()
     keys = [args.league] if args.league else list(leagues)
-    conn = sqlite3.connect(args.db)
+    conn = _pdb.connect(args.db)
     conn.executescript(SCHEMA.read_text("utf-8"))
 
     total = 0

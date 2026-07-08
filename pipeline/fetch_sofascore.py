@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import sqlite3
+import db as _pdb
 from pathlib import Path
 
 import pandas as pd
@@ -152,7 +153,7 @@ def main() -> int:
 
     keys = [args.league] if args.league else list(LEAGUES)
     ss = sfc.Sofascore()
-    conn = sqlite3.connect(Path(args.db))
+    conn = _pdb.connect(Path(args.db))
     try:
         migrate(conn)
         conn.executescript(SCHEMA.read_text("utf-8"))

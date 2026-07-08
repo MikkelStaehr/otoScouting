@@ -18,7 +18,11 @@ export function getDb(): DatabaseSync {
     );
   }
   if (!globalForDb._otoDb) {
-    globalForDb._otoDb = new DatabaseSync(DB_PATH, { readOnly: true });
+    const db = new DatabaseSync(DB_PATH, { readOnly: true });
+    // scouting.db is WAL (see pipeline/db.py) so a running ingest doesn't lock out
+    // reads; busy_timeout lets the rare checkpoint contention wait, not throw.
+    db.exec("PRAGMA busy_timeout = 5000");
+    globalForDb._otoDb = db;
   }
   return globalForDb._otoDb;
 }

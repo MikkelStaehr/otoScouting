@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import re
 import sqlite3
+import db as _pdb
 import sys
 import time
 from pathlib import Path
@@ -101,7 +102,7 @@ def main() -> int:
     tm = tmmod.Transfermarkt()
     scraper = cloudscraper.CloudScraper()
 
-    conn = sqlite3.connect(args.db)
+    conn = _pdb.connect(args.db)
     conn.executescript(SCHEMA.read_text("utf-8"))
 
     reg = load_leagues()

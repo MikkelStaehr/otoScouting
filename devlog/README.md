@@ -46,6 +46,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   60→22 MB + windowing (render 150 rækker, ikke 8.000)
 - **[2026-07-08](2026-07-08-ingest-ui.md)** — Opdater data fra appen: ingest-UI i
   Indstillinger (detached run + live progress, status-fil)
+- **[2026-07-08](2026-07-08-wal-mode.md)** — "database is locked" fix: WAL-mode så
+  ingest-skrivning ikke låser appens reads (delt pipeline/db.py + busy_timeout)
 
 ## Tidslinje (kort)
 
