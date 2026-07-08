@@ -366,24 +366,37 @@ function dataVersion(): string {
 }
 
 let clCache: { version: string; board: Board } | null = null;
+let fullCache: { version: string; board: Board } | null = null;
 
 /** Every league's current-season players in ONE percentile pool, each league's
  *  non-rate output discounted by its strength coefficient — a fair cross-league
- *  ranking (the prospect finder). Cached until the DB/config changes. */
+ *  ranking (the prospect finder). Excludes the benchmark (big-5) tier. Cached. */
 export function getCrossLeaguePlayers(): Board {
   const version = dataVersion();
   if (clCache && clCache.version === version) return clCache.board;
-  const board = computeCrossLeaguePlayers();
+  const board = computeCrossLeaguePlayers(false);
   clCache = { version, board };
   return board;
 }
 
-function computeCrossLeaguePlayers(): Board {
+/** Like getCrossLeaguePlayers but INCLUDING the big-5 benchmark tier, in one
+ *  percentile pool — so a development player and a big-5 player have comparable
+ *  vectors for cross-tier similarity ("plays like PL player X"). Cached. */
+export function getFullPoolPlayers(): Board {
+  const version = dataVersion();
+  if (fullCache && fullCache.version === version) return fullCache.board;
+  const board = computeCrossLeaguePlayers(true);
+  fullCache = { version, board };
+  return board;
+}
+
+function computeCrossLeaguePlayers(includeBenchmark: boolean): Board {
   const strength = loadLeagueStrength();
   // The benchmark (big-5) tier anchors the strength scale but is NOT scouted, so
-  // it stays out of the cross-league pool — otherwise elite players would crowd the
-  // development-league prospects the board is for.
-  const benchmark = loadBenchmarkLeagues();
+  // it stays out of the scouting pool — otherwise elite players would crowd the
+  // development-league prospects the board is for. The full pool (for cross-tier
+  // similarity) keeps them in.
+  const benchmark = includeBenchmark ? new Set<string>() : loadBenchmarkLeagues();
   const allRows: RawPlayer[] = [];
   const deltas = new Map<string, Partial<Record<MetricKey, number>>>();
   let comparedTo: string | null = null;

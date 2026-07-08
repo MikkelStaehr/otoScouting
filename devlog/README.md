@@ -34,6 +34,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   medianværdi (clubelo droppet: nede + ufuldstændig; r≈0,84, uafhængigt af eksterne servere)
 - **[2026-07-08](2026-07-08-big5-benchmark-tier.md)** — Big-5 som benchmark-tier: ankrer
   styrke-skalaen til virkeligheden (log, PL=1,0), men holdt ude af scouting-puljen
+- **[2026-07-08](2026-07-08-sammenlign-mod-big5.md)** — FBref-huller lukket (POL/GRE/Serie A)
+  + "Ligner i big-5" (sammenlign dev-profil mod benchmark-spillere)
 
 ## Tidslinje (kort)
 

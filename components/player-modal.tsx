@@ -41,7 +41,7 @@ interface PlayerDetail {
   seasonTeams: string[] | null;
   role: RoleResult | null;
   heatmap: HeatmapData | null;
-  groups: SimGroup[]; similar: SimilarPlayer[];
+  groups: SimGroup[]; similar: SimilarPlayer[]; benchmarkSimilar: SimilarPlayer[];
 }
 
 const PCT_KEYS = new Set([
@@ -321,6 +321,42 @@ export function PlayerModal() {
                 )}
                 <p className="mt-2 font-mono text-[10px] text-faint">
                   Lighed = hvor ens deres percentil-profiler er (samme rolle, på tværs af ligaer).
+                </p>
+              </div>
+
+              {/* big-5 benchmark lookalikes */}
+              <div className="mt-6 border-t border-line pt-4">
+                <div className="mb-2 flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-faint">
+                  <span>Ligner i big-5</span>
+                  <span className="rounded bg-volt/15 px-1 text-[9px] font-semibold text-volt">BENCHMARK</span>
+                </div>
+                {detail.benchmarkSimilar.length === 0 ? (
+                  <div className="py-3 font-mono text-xs text-faint">ingen tæt big-5-profil</div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                    {detail.benchmarkSimilar.map((s) => (
+                      <button
+                        key={s.key}
+                        onClick={() => load(s.key)}
+                        className="flex items-center gap-2 rounded-lg border border-line-2 bg-ink/40 px-2.5 py-2 text-left text-sm transition-colors hover:border-volt/50"
+                      >
+                        <TeamLogo team={s.team} />
+                        <span className="min-w-0 flex-1 truncate">
+                          <span className="text-fg">{s.player}</span>
+                          <span className="ml-1.5 font-mono text-[10px] text-faint">
+                            {s.team} · {s.league.slice(0, 3)}
+                            {s.age != null && ` · ${s.age}`}
+                          </span>
+                        </span>
+                        <span className="tnum shrink-0 font-mono text-xs font-semibold text-volt">
+                          {s.sim}%
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p className="mt-2 font-mono text-[10px] text-faint">
+                  Hvilke big-5-profiler han minder mest om — loftet, ikke et scouting-mål.
                 </p>
               </div>
             </>

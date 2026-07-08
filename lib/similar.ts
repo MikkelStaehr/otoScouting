@@ -4,7 +4,8 @@
 // metrics both players have. Candidates are the same class (outfield/GK) and, for
 // outfielders, the same primary position — a CB is matched to CBs, not wingers.
 
-import { getCrossLeaguePlayers } from "./players.ts";
+import { getCrossLeaguePlayers, getFullPoolPlayers } from "./players.ts";
+import { loadBenchmarkLeagues } from "./league-config.ts";
 import { loadModelConfig } from "./model.ts";
 import { getHeatmap, getAllCentroids, type Heatmap } from "./heatmap.ts";
 import { classifyRole, type RoleResult } from "./roles.ts";
@@ -69,29 +70,32 @@ export interface PlayerDetail {
   heatmap: Heatmap | null;
   groups: SimGroup[];
   similar: SimilarPlayer[];
+  benchmarkSimilar: SimilarPlayer[]; // closest big-5 players ("plays like PL X")
 }
 
-export function getPlayerDetail(key: string): PlayerDetail | null {
-  const { players } = getCrossLeaguePlayers();
-  const target = players.find((p) => `${p.team}::${p.player}` === key);
-  if (!target) return null;
-
-  const isGk = target.gk_saves != null;
-  const grp = posGroup(target.pos);
+/** Closest players to `target` within `candidates` (same class/position), by RMSE
+ *  over percentile vectors. `target` and `candidates` must share one percentile
+ *  pool for the distance to be meaningful. */
+function similarTo(
+  target: EnrichedPlayer,
+  candidates: EnrichedPlayer[],
+  isGk: boolean,
+  grp: string,
+  limit: number,
+): SimilarPlayer[] {
   const simKeys = isGk ? SIM_GK : SIM_OUTFIELD;
-  const vec = (p: EnrichedPlayer) => simKeys.map((k) => p.percentile[k]);
-  const tv = vec(target);
-
-  const similar: SimilarPlayer[] = players
+  const tv = simKeys.map((k) => target.percentile[k]);
+  const selfKey = `${target.team}::${target.player}`;
+  return candidates
     .filter(
       (p) =>
-        `${p.team}::${p.player}` !== key &&
+        `${p.team}::${p.player}` !== selfKey &&
         (p.gk_saves != null) === isGk &&
         (p.minutes ?? 0) >= 540 &&
         (isGk || posGroup(p.pos) === grp),
     )
     .map((p) => {
-      const pv = vec(p);
+      const pv = simKeys.map((k) => p.percentile[k]);
       let sum = 0;
       let n = 0;
       for (let i = 0; i < simKeys.length; i++) {
@@ -107,7 +111,7 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     })
     .filter((x): x is { p: EnrichedPlayer; sim: number } => x != null)
     .sort((a, b) => b.sim - a.sim)
-    .slice(0, 8)
+    .slice(0, limit)
     .map(({ p, sim }) => ({
       key: `${p.team}::${p.player}`,
       player: p.player,
@@ -117,6 +121,31 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
       pos: p.pos,
       sim,
     }));
+}
+
+export function getPlayerDetail(key: string): PlayerDetail | null {
+  const dev = getCrossLeaguePlayers().players;
+  const full = getFullPoolPlayers().players;
+  const devTarget = dev.find((p) => `${p.team}::${p.player}` === key) ?? null;
+  const fullTarget = full.find((p) => `${p.team}::${p.player}` === key) ?? null;
+  // Development players keep the board's percentile basis; a big-5 player (not in
+  // the dev pool, opened from its own league view) falls back to the full pool.
+  const target = devTarget ?? fullTarget;
+  if (!target) return null;
+
+  const isGk = target.gk_saves != null;
+  const grp = posGroup(target.pos);
+
+  // Dev lookalikes: development players only, on the board basis (a big-5 target
+  // shows none — you don't scout the big-5 against each other here).
+  const similar = devTarget ? similarTo(devTarget, dev, isGk, grp, 8) : [];
+
+  // Benchmark lookalikes: target vs the big-5, both in the FULL pool (one percentile
+  // basis), so "your profile plays like [PL player X]" is meaningful.
+  const benchmarkLeagues = loadBenchmarkLeagues();
+  const benchmarkSimilar = fullTarget
+    ? similarTo(fullTarget, full.filter((p) => benchmarkLeagues.has(p.league)), isGk, grp, 5)
+    : [];
 
   const config = loadModelConfig();
   const displayGroups: GroupKey[] = isGk
@@ -168,5 +197,6 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     heatmap: getHeatmap(target.league, target.season, target.sofascore_id),
     groups,
     similar,
+    benchmarkSimilar,
   };
 }
