@@ -27,7 +27,9 @@ export interface XIPlayer {
   out: number | null; // rounded OUT (outfield) or keeper score
   role: string | null; // specific archetype (e.g. "Poacher")
   bucket: string; // GK / CB / BACK / MID / WIDE / STRIKER
-  score: number; // the value ranked on (OUT, keeper score, or score-per-€m)
+  score: number; // season quality (OUT / keeper score)
+  form: number; // Δ(xG+xA) since last snapshot (Δ goals-prevented for GK)
+  hasForm: boolean; // whether a previous-snapshot delta exists at all
 }
 
 export interface Formation {
@@ -64,6 +66,7 @@ export interface XIOptions {
   league?: string | null;
   bargain?: boolean; // rank by OUT per €m instead of raw OUT
   maxValue?: number | null; // euro cap
+  metric?: "season" | "form"; // season quality (OUT) vs Δ-production since last snapshot
 }
 
 // OUT is null for keepers, so rank them on goals-prevented percentile (then save%).
@@ -89,6 +92,9 @@ function buildCandidates(minMinutes: number): XIPlayer[] {
     const isGk = bucket === "GK";
     const s = isGk ? gkScore(p) : p.outputScore ?? -1;
     if (s < 0) continue;
+    const d = p.delta ?? {};
+    const hasForm = d.xg != null || d.xa != null || d.gk_goals_prevented != null;
+    const form = isGk ? d.gk_goals_prevented ?? 0 : (d.xg ?? 0) + (d.xa ?? 0);
     out.push({
       key: `${p.team}::${p.player}`,
       player: p.player,
@@ -103,6 +109,8 @@ function buildCandidates(minMinutes: number): XIPlayer[] {
       role: res.primary?.role ?? null,
       bucket,
       score: s,
+      form,
+      hasForm,
     });
   }
   return out;
@@ -143,11 +151,17 @@ export function pickBestXI(opts: XIOptions = {}): BestXI {
   // Bargain = good players who are cheap, not the cheapest — keep a quality floor
   // (above-average output) so OUT/€m doesn't reward tiny-value obscurity.
   if (opts.bargain) cands = cands.filter((c) => c.score >= 60);
+  // Form ranks by Δ-production, so only players that actually carry a delta.
+  if (opts.metric === "form") cands = cands.filter((c) => c.hasForm);
 
-  // Bargain ranks by output-per-€m; players without a value fall back to raw score
-  // (so a missing value never wins the bargain lens outright).
+  // Form → Δ(xG+xA); bargain → output-per-€m (missing value falls back to raw score
+  // so it never wins outright); otherwise season OUT.
   const rankVal = (c: XIPlayer) =>
-    opts.bargain && c.marketValue && c.marketValue > 0 ? c.score / (c.marketValue / 1e6) : c.score;
+    opts.metric === "form"
+      ? c.form
+      : opts.bargain && c.marketValue && c.marketValue > 0
+        ? c.score / (c.marketValue / 1e6)
+        : c.score;
 
   const byBucket = new Map<string, XIPlayer[]>();
   for (const c of cands) {

@@ -17,15 +17,16 @@ const SUBTITLE: Record<string, string> = {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ lens?: string; nation?: string; league?: string }>;
+  searchParams: Promise<{ metric?: string; lens?: string; nation?: string; league?: string }>;
 }) {
   const sp = await searchParams;
+  const metric = sp.metric === "form" ? "form" : "season";
   const lens = sp.lens ?? "samlet";
   const facets = xiFacets();
   const nation = sp.nation ?? facets.nations[0]?.code ?? "";
   const league = sp.league ?? facets.leagues[0]?.key ?? "";
 
-  const opts: XIOptions = {};
+  const opts: XIOptions = { metric };
   if (lens === "u21") opts.maxAge = 21;
   else if (lens === "bargain") opts.bargain = true;
   else if (lens === "nation") opts.nation = nation;
@@ -61,6 +62,7 @@ export default async function Page({
 
         <div className="mb-6">
           <BestXIControls
+            metric={metric}
             lens={lens}
             nation={nation}
             league={league}
@@ -68,6 +70,14 @@ export default async function Page({
             leagues={facets.leagues}
           />
         </div>
+
+        {metric === "form" && (
+          <div className="mb-5 rounded-xl border border-line-2 bg-ink/30 px-4 py-3 font-mono text-[11px] leading-relaxed text-muted">
+            <span className="text-volt">Form</span> = Δ(xG + xA) produceret siden sidste snapshot.
+            Signalet <span className="text-fg">modnes med rigtig 14-dages-kadence</span> — lige nu
+            bygger det på små dev-intervaller, så tag holdet med et gran salt.
+          </div>
+        )}
 
         <BestXIPitch xi={xi} />
 
