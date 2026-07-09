@@ -75,12 +75,6 @@ export interface XIOptions {
   pool?: Pool; // all leagues (incl. big-5) or scouting-only
 }
 
-// OUT is null for keepers, so rank them on goals-prevented percentile (then save%).
-function gkScore(p: EnrichedPlayer): number {
-  const pct = p.percentile as unknown as Record<string, number | null>;
-  return pct.gk_goals_prevented ?? pct.gk_save_pct ?? 0;
-}
-
 function buildCandidates(minMinutes: number, pool: Pool): XIPlayer[] {
   const { players } = poolBoard(pool);
   const centroids = getAllCentroids();
@@ -96,7 +90,10 @@ function buildCandidates(minMinutes: number, pool: Pool): XIPlayer[] {
     const bucket = res.bucket;
     if (bucket === "?") continue;
     const isGk = bucket === "GK";
-    const s = isGk ? gkScore(p) : p.outputScore ?? -1;
+    // Keepers carry a real strength-adjusted keeperScore in outputScore (goals-
+    // prevented + save% + clean sheets + GA), so rank them on the same scale as
+    // outfielders — no separate raw-percentile hack.
+    const s = p.outputScore ?? -1;
     if (s < 0) continue;
     const d = p.delta ?? {};
     const hasForm = d.xg != null || d.xa != null || d.gk_goals_prevented != null;
