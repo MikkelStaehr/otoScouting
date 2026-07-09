@@ -108,6 +108,31 @@ function buildCandidates(minMinutes: number): XIPlayer[] {
   return out;
 }
 
+/** Nations/leagues that actually have enough qualified players to field for — the
+ *  options for the Nation/Liga lens dropdowns. Nations need ≥8 (a near-XI). */
+export function xiFacets(minMinutes = 900): {
+  nations: { code: string; count: number }[];
+  leagues: { key: string; count: number }[];
+} {
+  const { players } = getCrossLeaguePlayers();
+  const nat = new Map<string, number>();
+  const lg = new Map<string, number>();
+  for (const p of players) {
+    if (!p.qualified || p.minutes < minMinutes) continue;
+    if (p.nation) nat.set(p.nation, (nat.get(p.nation) ?? 0) + 1);
+    lg.set(p.league, (lg.get(p.league) ?? 0) + 1);
+  }
+  return {
+    nations: [...nat.entries()]
+      .map(([code, count]) => ({ code, count }))
+      .filter((n) => n.count >= 8)
+      .sort((a, b) => b.count - a.count),
+    leagues: [...lg.entries()]
+      .map(([key, count]) => ({ key, count }))
+      .sort((a, b) => b.count - a.count),
+  };
+}
+
 export function pickBestXI(opts: XIOptions = {}): BestXI {
   const minMinutes = opts.minMinutes ?? 900;
   let cands = buildCandidates(minMinutes);
@@ -115,6 +140,9 @@ export function pickBestXI(opts: XIOptions = {}): BestXI {
   if (opts.nation) cands = cands.filter((c) => c.nation === opts.nation);
   if (opts.league) cands = cands.filter((c) => c.league === opts.league);
   if (opts.maxValue != null) cands = cands.filter((c) => (c.marketValue ?? Infinity) <= opts.maxValue!);
+  // Bargain = good players who are cheap, not the cheapest — keep a quality floor
+  // (above-average output) so OUT/€m doesn't reward tiny-value obscurity.
+  if (opts.bargain) cands = cands.filter((c) => c.score >= 60);
 
   // Bargain ranks by output-per-€m; players without a value fall back to raw score
   // (so a missing value never wins the bargain lens outright).
