@@ -14,11 +14,15 @@ export function openPalette() {
 
 const MAX_RESULTS = 50;
 
-export function CommandPalette({ index }: { index: PlayerIndexRow[] }) {
+export function CommandPalette() {
   const [mounted, setMounted] = useState(false); // in DOM (for exit transition)
   const [visible, setVisible] = useState(false); // animated-in state
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
+  // The all-league index (~15k players) is fetched once on first open instead of
+  // riding in every page's payload. The layout persists, so it's one fetch/session.
+  const [index, setIndex] = useState<PlayerIndexRow[]>([]);
+  const indexLoaded = useRef(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -32,6 +36,13 @@ export function CommandPalette({ index }: { index: PlayerIndexRow[] }) {
     setActive(0);
     setMounted(true);
     requestAnimationFrame(() => setVisible(true));
+    if (!indexLoaded.current) {
+      indexLoaded.current = true;
+      fetch("/api/search-index")
+        .then((r) => r.json())
+        .then((d: PlayerIndexRow[]) => setIndex(d))
+        .catch(() => (indexLoaded.current = false)); // let it retry next open
+    }
   }, []);
 
   const close = useCallback(() => {

@@ -505,3 +505,25 @@ export function getPlayerIndex(league: string, season: string): PlayerIndexRow[]
     }))
     .sort((a, b) => a.player.localeCompare(b.player));
 }
+
+let playerIndexCache: { version: string; index: PlayerIndexRow[] } | null = null;
+
+/** Every player across every league-season, for the ⌘K palette — so search finds
+ *  anyone, not just the default league. Deduped by key, cached on the data version. */
+export function getAllPlayerIndex(): PlayerIndexRow[] {
+  const version = dataVersion();
+  if (playerIndexCache && playerIndexCache.version === version) return playerIndexCache.index;
+  const seen = new Set<string>();
+  const out: PlayerIndexRow[] = [];
+  for (const ls of getLeagueSeasons()) {
+    for (const p of rawPlayers(ls.league, ls.season)) {
+      const key = `${p.team}::${p.player}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ key, player: p.player, team: p.team, pos: p.pos });
+    }
+  }
+  out.sort((a, b) => a.player.localeCompare(b.player));
+  playerIndexCache = { version, index: out };
+  return out;
+}

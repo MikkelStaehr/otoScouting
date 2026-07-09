@@ -60,6 +60,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   (player_bio + backfill + visning i kort/rapport)
 - **[2026-07-09](2026-07-09-del-kort.md)** — Del-kort til SoMe: brandet spiller-PNG
   (html-to-image) + deterministisk caption, isoleret rute /del
+- **[2026-07-09](2026-07-09-soegning.md)** — ⌘K søger nu alle 30 ligaer (index
+  hentet på første åbning, ude af per-side-payload)
 
 ## Tidslinje (kort)
 

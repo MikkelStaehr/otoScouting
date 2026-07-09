@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
-import {
-  getDefaultLeagueSeason,
-  getLastUpdated,
-  getPlayerIndex,
-} from "@/lib/players";
+import { getLastUpdated } from "@/lib/players";
 import { CommandPalette } from "@/components/command-palette";
 import { SettingsModal } from "@/components/settings-modal";
 import { SetupWizard } from "@/components/setup-wizard";
 import { PlayerModal } from "@/components/player-modal";
 import { TeamModal } from "@/components/team-modal";
-import type { PlayerIndexRow } from "@/lib/types";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -35,17 +30,15 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Small player search index, read server-side from scouting.db and handed to
-  // the ⌘K palette. Empty when the DB hasn't been built yet.
-  const ls = getDefaultLeagueSeason();
-  const index: PlayerIndexRow[] = ls ? getPlayerIndex(ls.league, ls.season) : [];
+  // The ⌘K palette fetches its (all-league) index itself on first open — see
+  // /api/search-index — so it stays out of every page's payload.
   const lastUpdated = getLastUpdated();
 
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
       <body>
         {children}
-        <CommandPalette index={index} />
+        <CommandPalette />
         <SettingsModal lastUpdated={lastUpdated} />
         <PlayerModal />
         <TeamModal />
