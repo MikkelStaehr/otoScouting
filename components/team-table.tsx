@@ -130,6 +130,15 @@ export function TeamTable({ teams, crossLeague = false }: { teams: EnrichedTeam[
                       {t.league.split("-")[0]}
                     </span>
                   )}
+                  <a
+                    href={`/team-report/${encodeURIComponent(`${t.league}::${t.team}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Åbn hold-rapport (print/PDF)"
+                    className="ml-1.5 font-mono text-[11px] text-faint transition-colors hover:text-volt"
+                  >
+                    ↗
+                  </a>
                 </td>
                 <td className="px-3 py-2 text-right tnum text-muted">{t.matches}</td>
                 {crossLeague && (
