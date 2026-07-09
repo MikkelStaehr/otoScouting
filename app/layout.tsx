@@ -26,7 +26,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OtoScout — FBref scouting",
+  title: "OtoScout",
   description: "A local, single-user football scouting tool. Press ⌘K to find a player.",
 };
 

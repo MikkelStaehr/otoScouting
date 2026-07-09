@@ -50,6 +50,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   ingest-skrivning ikke låser appens reads (delt pipeline/db.py + busy_timeout)
 - **[2026-07-09](2026-07-09-localhost-wins.md)** — Raw DB-windowing (11,5s→1,8s) +
   index på history(snapshot_id)
+- **[2026-07-09](2026-07-09-bedste-xi.md)** — Bedste XI (fase 1): bedste spiller pr.
+  position i en 4-3-3 på tværs af ligaerne, på en bane
 
 ## Tidslinje (kort)
 

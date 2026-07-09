@@ -9,6 +9,7 @@ const NAV = [
   { href: "/", label: "Spillere" },
   { href: "/hold", label: "Hold" },
   { href: "/shortlist", label: "Shortlist" },
+  { href: "/bedste-xi", label: "Bedste XI" },
 ];
 // Database lives on the right, by the search field.
 const DB_NAV = [
