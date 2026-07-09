@@ -34,6 +34,7 @@ OUT = ROOT / "config" / "team-logos.json"
 FBREF_ALIAS: dict[str, int] = {
     "rz pellets wac": 2076,        # Wolfsberger AC
     "qpr": 1,                      # Queens Park Rangers
+    "manchester utd": 35,          # FBref abbrev — else fuzzy-matches Man City (17)
     "kups": 2244,                  # Kuopion Palloseura
     "tps": 2254,                   # Turun Palloseura
     "btsv": 2557,                  # Eintracht Braunschweig
