@@ -17,16 +17,17 @@ const SUBTITLE: Record<string, string> = {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ metric?: string; lens?: string; nation?: string; league?: string }>;
+  searchParams: Promise<{ metric?: string; lens?: string; nation?: string; league?: string; pool?: string }>;
 }) {
   const sp = await searchParams;
   const metric = sp.metric === "form" ? "form" : "season";
+  const pool = sp.pool === "scouting" ? "scouting" : "all";
   const lens = sp.lens ?? "samlet";
-  const facets = xiFacets();
+  const facets = xiFacets(pool);
   const nation = sp.nation ?? facets.nations[0]?.code ?? "";
   const league = sp.league ?? facets.leagues[0]?.key ?? "";
 
-  const opts: XIOptions = { metric };
+  const opts: XIOptions = { metric, pool };
   if (lens === "u21") opts.maxAge = 21;
   else if (lens === "bargain") opts.bargain = true;
   else if (lens === "nation") opts.nation = nation;
@@ -63,6 +64,7 @@ export default async function Page({
         <div className="mb-6">
           <BestXIControls
             metric={metric}
+            pool={pool}
             lens={lens}
             nation={nation}
             league={league}
@@ -83,10 +85,12 @@ export default async function Page({
 
         <p className="mt-8 max-w-3xl font-mono text-[11px] leading-relaxed text-faint">
           Positioner fra rolle-modellen (GK/CB/back/midt/kant/angreb), rangeret efter{" "}
-          <span className="text-muted">OUT</span> — den strength-justerede output-score på tværs af
-          alle scouting-ligaer (big-5-benchmark ekskluderet). Kun spillere med ≥900 min. Målmænd
-          rangeres på goals-prevented. Bargain rangerer på OUT per million €. Klik en spiller for
-          detaljer.
+          <span className="text-muted">OUT</span> — den strength-justerede output-score.{" "}
+          {pool === "all"
+            ? "Alle ligaer, inkl. big-5-benchmark (et ægte bedste hold)."
+            : "Kun scouting-ligaer, big-5 ekskluderet (et bedste prospekt-hold)."}{" "}
+          Kun spillere med ≥900 min. Målmænd rangeres på goals-prevented. Bargain rangerer på OUT
+          per million €. Klik en spiller for detaljer.
         </p>
       </main>
     </div>

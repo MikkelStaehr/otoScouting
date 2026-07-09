@@ -5,9 +5,14 @@
 // the season/form split is just which score we rank by. Server-only.
 
 import type { EnrichedPlayer } from "./types.ts";
-import { getCrossLeaguePlayers } from "./players.ts";
+import { getCrossLeaguePlayers, getFullPoolPlayers } from "./players.ts";
 import { getAllCentroids } from "./heatmap.ts";
 import { classifyRole } from "./roles.ts";
+
+// "all" = every league incl. the big-5 benchmark (a true best XI); "scouting" =
+// development leagues only (a best-prospect XI, like the board).
+export type Pool = "all" | "scouting";
+const poolBoard = (pool: Pool) => (pool === "scouting" ? getCrossLeaguePlayers() : getFullPoolPlayers());
 
 const pgOf = (pos: string | null): string => {
   const t = (pos ?? "").split(",")[0]?.trim() ?? "";
@@ -67,6 +72,7 @@ export interface XIOptions {
   bargain?: boolean; // rank by OUT per €m instead of raw OUT
   maxValue?: number | null; // euro cap
   metric?: "season" | "form"; // season quality (OUT) vs Δ-production since last snapshot
+  pool?: Pool; // all leagues (incl. big-5) or scouting-only
 }
 
 // OUT is null for keepers, so rank them on goals-prevented percentile (then save%).
@@ -75,8 +81,8 @@ function gkScore(p: EnrichedPlayer): number {
   return pct.gk_goals_prevented ?? pct.gk_save_pct ?? 0;
 }
 
-function buildCandidates(minMinutes: number): XIPlayer[] {
-  const { players } = getCrossLeaguePlayers();
+function buildCandidates(minMinutes: number, pool: Pool): XIPlayer[] {
+  const { players } = poolBoard(pool);
   const centroids = getAllCentroids();
   const out: XIPlayer[] = [];
   for (const p of players) {
@@ -118,11 +124,14 @@ function buildCandidates(minMinutes: number): XIPlayer[] {
 
 /** Nations/leagues that actually have enough qualified players to field for — the
  *  options for the Nation/Liga lens dropdowns. Nations need ≥8 (a near-XI). */
-export function xiFacets(minMinutes = 900): {
+export function xiFacets(
+  pool: Pool = "all",
+  minMinutes = 900,
+): {
   nations: { code: string; count: number }[];
   leagues: { key: string; count: number }[];
 } {
-  const { players } = getCrossLeaguePlayers();
+  const { players } = poolBoard(pool);
   const nat = new Map<string, number>();
   const lg = new Map<string, number>();
   for (const p of players) {
@@ -143,7 +152,7 @@ export function xiFacets(minMinutes = 900): {
 
 export function pickBestXI(opts: XIOptions = {}): BestXI {
   const minMinutes = opts.minMinutes ?? 900;
-  let cands = buildCandidates(minMinutes);
+  let cands = buildCandidates(minMinutes, opts.pool ?? "all");
   if (opts.maxAge != null) cands = cands.filter((c) => c.age != null && c.age <= opts.maxAge!);
   if (opts.nation) cands = cands.filter((c) => c.nation === opts.nation);
   if (opts.league) cands = cands.filter((c) => c.league === opts.league);

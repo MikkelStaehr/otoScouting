@@ -8,6 +8,10 @@ const METRICS = [
   { key: "season", label: "Sæson" },
   { key: "form", label: "Form" },
 ];
+const POOLS = [
+  { key: "all", label: "Alle ligaer" },
+  { key: "scouting", label: "Kun scouting" },
+];
 const LENSES = [
   { key: "samlet", label: "Samlet" },
   { key: "u21", label: "U21" },
@@ -104,6 +108,7 @@ function Combo({ value, options, onChange }: { value: string; options: Opt[]; on
 
 export function BestXIControls({
   metric,
+  pool,
   lens,
   nation,
   league,
@@ -111,6 +116,7 @@ export function BestXIControls({
   leagues,
 }: {
   metric: string;
+  pool: string;
   lens: string;
   nation: string;
   league: string;
@@ -120,12 +126,14 @@ export function BestXIControls({
   const router = useRouter();
 
   // Build a URL from the current state with the given overrides — so switching one
-  // axis (metric / lens / dropdown) preserves the others.
-  const urlFor = (over: Partial<{ metric: string; lens: string; nation: string; league: string }>) => {
+  // axis (metric / pool / lens / dropdown) preserves the others.
+  const urlFor = (over: Partial<{ metric: string; pool: string; lens: string; nation: string; league: string }>) => {
     const m = over.metric ?? metric;
+    const pl = over.pool ?? pool;
     const l = over.lens ?? lens;
     const p = new URLSearchParams();
     if (m === "form") p.set("metric", "form");
+    if (pl === "scouting") p.set("pool", "scouting");
     p.set("lens", l);
     if (l === "nation") p.set("nation", (over.nation ?? nation) || nations[0]?.code || "");
     if (l === "liga") p.set("league", (over.league ?? league) || leagues[0]?.key || "");
@@ -140,11 +148,17 @@ export function BestXIControls({
 
   return (
     <div className="space-y-3">
-      {/* metric axis */}
-      <div className="flex items-center gap-2">
+      {/* metric + pool axes */}
+      <div className="flex flex-wrap items-center gap-2">
         {METRICS.map((m) => (
           <button key={m.key} onClick={() => push({ metric: m.key })} className={tab(metric === m.key)}>
             {m.label}
+          </button>
+        ))}
+        <span className="mx-1 h-4 w-px bg-line-2" />
+        {POOLS.map((pl) => (
+          <button key={pl.key} onClick={() => push({ pool: pl.key })} className={tab(pool === pl.key)}>
+            {pl.label}
           </button>
         ))}
       </div>
