@@ -5,7 +5,7 @@ import {
   getEnrichedPlayers,
   getCrossLeaguePlayers,
 } from "@/lib/players";
-import { getTeams, getTeamLeagueSeasons } from "@/lib/teams";
+import { getTeams, getCrossLeagueTeams, getTeamLeagueSeasons } from "@/lib/teams";
 import { ALL_LEAGUES } from "@/lib/league-config";
 import { loadModelConfig } from "@/lib/model";
 
@@ -57,8 +57,9 @@ export default async function BoardPage({
   // Cuts the client payload ~30% and drops tiny-sample OUT=100 noise; single-league
   // keeps the full roster (unqualified rendered dimmed).
   const players = crossLeague ? board.players.filter((p) => p.qualified) : board.players;
-  // Team percentiles are per-league, so the Hold board stays single-league.
-  const teams = crossLeague ? [] : getTeams(selected.league, selected.season);
+  // Cross-league: the Table of Justice for teams (strength-adjusted pool). Otherwise
+  // the per-league team ranking.
+  const teams = crossLeague ? getCrossLeagueTeams() : getTeams(selected.league, selected.season);
 
   return (
     <div className="min-h-dvh">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlayerTable } from "./player-table";
 import { TeamTable } from "./team-table";
@@ -40,18 +40,10 @@ export function BoardSwitch({
   rates: MetricKey[];
   comparedTo: string | null;
 }) {
-  // Cross-league is a players-only view (team ranks are per-league), so open on
-  // Spillere when it's active; otherwise keep the Hold-first default.
-  const [scope, setScope] = useState<"players" | "teams">(
-    crossLeague ? "players" : "teams",
-  );
+  // Scope (Hold / Spillere) is the user's choice and persists across league changes —
+  // both work cross-league now (the Table of Justice covers teams too).
+  const [scope, setScope] = useState<"players" | "teams">("teams");
   const router = useRouter();
-
-  // Navigating into "Alle ligaer" reuses this component (no remount), so the
-  // initial state above doesn't re-run — force Spillere, since Hold is per-league.
-  useEffect(() => {
-    if (crossLeague) setScope("players");
-  }, [crossLeague]);
 
   const leagues = [...new Set(teamOptions.map((o) => o.league))];
   const seasonsForSelected = teamOptions.filter(
@@ -156,14 +148,8 @@ export function BoardSwitch({
           comparedTo={comparedTo}
           crossLeague={crossLeague}
         />
-      ) : crossLeague ? (
-        <div className="rounded-xl border border-dashed border-line-2 bg-panel/30 px-5 py-10 text-center font-mono text-sm text-muted">
-          Hold-rangeringen er per liga (percentiler inden for hver liga).
-          <br />
-          Vælg en enkelt liga ovenfor for holdvisningen.
-        </div>
       ) : (
-        <TeamTable teams={teams} />
+        <TeamTable teams={teams} crossLeague={crossLeague} />
       )}
     </div>
   );

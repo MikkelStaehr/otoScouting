@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { EnrichedTeam, TeamMetricKey } from "@/lib/types";
 import { TEAM_METRICS, type TeamMetricDef } from "@/lib/team-metrics";
 import { teamLogoUrl } from "@/lib/team-logos";
@@ -16,13 +16,21 @@ function fmt(m: TeamMetricDef, v: number | null): string {
   return v < 3 ? v.toFixed(2) : v.toFixed(1);
 }
 
-export function TeamTable({ teams }: { teams: EnrichedTeam[] }) {
-  const [sortKey, setSortKey] = useState<string>("avg_rating");
+export function TeamTable({ teams, crossLeague = false }: { teams: EnrichedTeam[]; crossLeague?: boolean }) {
+  const [sortKey, setSortKey] = useState<string>(crossLeague ? "score" : "avg_rating");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  // avg_rating isn't cross-league comparable, so default to the strength-adjusted
+  // Score when the pool is cross-league (and back to rating for a single league).
+  useEffect(() => {
+    setSortKey(crossLeague ? "score" : "avg_rating");
+    setSortDir("desc");
+  }, [crossLeague]);
 
   function sortValue(t: EnrichedTeam, key: string): number | string {
     if (key === "team") return t.team;
     if (key === "matches") return t.matches;
+    if (key === "score") return t.score ?? -Infinity;
     if (key === "avg_rating") return t.avg_rating ?? -Infinity;
     return t.value[key as TeamMetricKey] ?? -Infinity;
   }
@@ -75,7 +83,7 @@ export function TeamTable({ teams }: { teams: EnrichedTeam[] }) {
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-ink-2">
             <tr>
-              <th colSpan={3} className="bg-ink-2 px-3 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
+              <th colSpan={crossLeague ? 4 : 3} className="bg-ink-2 px-3 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.2em] text-faint">
                 Hold
               </th>
               <th colSpan={OFF.length} className="border-l-2 border-volt/30 px-3 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.2em] text-volt">
@@ -88,6 +96,9 @@ export function TeamTable({ teams }: { teams: EnrichedTeam[] }) {
             <tr className="border-b border-line">
               <Th sticky onClick={() => toggleSort("team", true)} active={sortKey === "team"} dir={sortDir}>Hold</Th>
               <Th num onClick={() => toggleSort("matches")} active={sortKey === "matches"} dir={sortDir}>Kampe</Th>
+              {crossLeague && (
+                <Th num accent onClick={() => toggleSort("score")} active={sortKey === "score"} dir={sortDir}>Score</Th>
+              )}
               <Th num accent onClick={() => toggleSort("avg_rating")} active={sortKey === "avg_rating"} dir={sortDir}>Rating</Th>
               {OFF.map((m, i) => (
                 <Th key={m.key} num divider={i === 0} onClick={() => toggleSort(m.key)} active={sortKey === m.key} dir={sortDir}>
@@ -114,8 +125,18 @@ export function TeamTable({ teams }: { teams: EnrichedTeam[] }) {
                   >
                     {t.team}
                   </button>
+                  {crossLeague && (
+                    <span className="ml-2 rounded bg-ink-2 px-1 py-0.5 font-mono text-[9px] text-faint">
+                      {t.league.split("-")[0]}
+                    </span>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-right tnum text-muted">{t.matches}</td>
+                {crossLeague && (
+                  <td className="px-3 py-2 text-right tnum font-bold text-volt">
+                    {t.score != null ? Math.round(t.score) : "—"}
+                  </td>
+                )}
                 <td className="px-3 py-2 text-right tnum font-semibold text-volt">{t.avg_rating?.toFixed(2) ?? "—"}</td>
                 {OFF.map((m, j) => (
                   <td key={m.key} className={`px-3 py-2 text-right tnum text-fg ${j === 0 ? "border-l-2 border-line-2" : ""}`} style={medianStyle(t.percentile[m.key])}>

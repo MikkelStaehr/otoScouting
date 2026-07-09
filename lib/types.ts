@@ -222,6 +222,9 @@ export interface EnrichedTeam extends RawTeam {
   value: Record<TeamMetricKey, number | null>;
   /** Percentile within the 12-team league (invert applied so green = good). */
   percentile: Record<TeamMetricKey, number | null>;
+  /** Cross-league composite score (0-100, strength-adjusted). Only set by
+   *  getCrossLeagueTeams — the Table of Justice for teams. */
+  score?: number;
 }
 
 export interface ModelConfig {

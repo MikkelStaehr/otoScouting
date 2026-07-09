@@ -54,6 +54,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   position i en 4-3-3 på tværs af ligaerne, på en bane
 - **[2026-07-09](2026-07-09-hold-rapporter.md)** — Hold-rapporter: eksporterbar
   print-one-pager pr. hold (narrativ + rekruttering), som spiller-scout-reports
+- **[2026-07-09](2026-07-09-cross-league-hold.md)** — Table of Justice for hold:
+  cross-league hold-rangering (strength-justeret composite score)
 
 ## Tidslinje (kort)
 

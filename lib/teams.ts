@@ -7,6 +7,7 @@ import { statSync } from "node:fs";
 import { join } from "node:path";
 import { getDb } from "./db.ts";
 import { TEAM_METRICS, type TeamMetricDef } from "./team-metrics.ts";
+import { loadLeagueStrength, loadBenchmarkLeagues } from "./league-config.ts";
 import type { EnrichedTeam, RawTeam, TeamMetricKey } from "./types.ts";
 
 function percentileOf(sortedAsc: number[], v: number): number {
@@ -133,5 +134,67 @@ export function getAllTeams(): EnrichedTeam[] {
   const out: EnrichedTeam[] = [];
   for (const ls of getTeamLeagueSeasons()) out.push(...getTeams(ls.league, ls.season));
   allTeamsCache = { version, teams: out };
+  return out;
+}
+
+let clTeamsCache: { version: string; teams: EnrichedTeam[] } | null = null;
+
+/** Table of Justice for teams: every scouting league's teams in one pool, each
+ *  metric strength-adjusted and re-percentiled across all of them, plus a composite
+ *  score. Weak leagues are penalised in the right direction — more-is-better × its
+ *  strength coefficient, less-is-better (invert) ÷ it; rates untouched. Benchmark
+ *  (big-5) excluded, like the player board. Cached. */
+export function getCrossLeagueTeams(): EnrichedTeam[] {
+  let version = "0";
+  try {
+    version = String(statSync(join(process.cwd(), "scouting.db")).mtimeMs);
+  } catch {
+    /* keep default */
+  }
+  if (clTeamsCache && clTeamsCache.version === version) return clTeamsCache.teams;
+
+  const strength = loadLeagueStrength();
+  const benchmark = loadBenchmarkLeagues();
+  // Clone so we don't mutate getAllTeams' cache; reset percentiles for the re-rank.
+  const teams = getAllTeams()
+    .filter((t) => !benchmark.has(t.league))
+    .map((t) => ({ ...t, percentile: {} as Record<TeamMetricKey, number | null>, score: 0 }));
+
+  const adj = (t: EnrichedTeam, m: TeamMetricDef): number | null => {
+    const v = t.value[m.key];
+    if (v == null) return null;
+    if (m.rate) return v; // rates aren't league-adjusted (mirrors the player model)
+    const s = strength[t.league] ?? 1;
+    return m.invert ? v / s : v * s;
+  };
+
+  for (const m of TEAM_METRICS) {
+    const sorted = teams
+      .map((t) => adj(t, m))
+      .filter((v): v is number => v != null)
+      .sort((a, b) => a - b);
+    for (const t of teams) {
+      const av = adj(t, m);
+      if (av == null) t.percentile[m.key] = null;
+      else {
+        const pct = percentileOf(sorted, av);
+        t.percentile[m.key] = m.invert ? 100 - pct : pct;
+      }
+    }
+  }
+
+  const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+  for (const t of teams) {
+    const grp = (g: "off" | "def") =>
+      mean(
+        TEAM_METRICS.filter((m) => m.group === g)
+          .map((m) => t.percentile[m.key])
+          .filter((v): v is number => v != null),
+      );
+    t.score = Math.round(((grp("off") + grp("def")) / 2) * 10) / 10;
+  }
+
+  const out = teams.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  clTeamsCache = { version, teams: out };
   return out;
 }
