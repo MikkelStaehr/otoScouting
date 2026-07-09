@@ -58,6 +58,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   cross-league hold-rangering (strength-justeret composite score)
 - **[2026-07-09](2026-07-09-hojde-fod.md)** — Højde + foretrukken fod fra Sofascore
   (player_bio + backfill + visning i kort/rapport)
+- **[2026-07-09](2026-07-09-del-kort.md)** — Del-kort til SoMe: brandet spiller-PNG
+  (html-to-image) + deterministisk caption, isoleret rute /del
 
 ## Tidslinje (kort)
 

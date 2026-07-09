@@ -218,6 +218,17 @@ export function PlayerModal() {
                 Rapport ↗
               </a>
             )}
+            {detail && (
+              <a
+                href={`/del/${encodeURIComponent(detail.key)}`}
+                target="_blank"
+                rel="noreferrer"
+                title="Del-kort til SoMe (PNG + caption)"
+                className="rounded-md border border-line-2 px-2 py-1 font-mono text-[11px] text-muted transition-colors hover:border-volt/60 hover:text-volt"
+              >
+                Del ↗
+              </a>
+            )}
             {detail?.out != null && (
               <div className="text-right">
                 <div className="tnum text-2xl font-bold text-volt">{detail.out}</div>
