@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fuzzyFilter } from "@/lib/fuzzy";
 import type { PlayerIndexRow } from "@/lib/types";
-import { FOCUS_EVENT } from "./player-table";
+import { openPlayer } from "./player-modal";
 
 const OPEN_EVENT = "otoscout:open-palette";
 
@@ -107,9 +107,7 @@ export function CommandPalette() {
     (row: PlayerIndexRow | undefined) => {
       if (!row) return;
       close();
-      window.dispatchEvent(
-        new CustomEvent(FOCUS_EVENT, { detail: { key: row.key } }),
-      );
+      openPlayer(row.key); // opens the player modal — works from any page
     },
     [close],
   );
@@ -210,7 +208,7 @@ export function CommandPalette() {
                       {r.pos ? ` · ${r.pos}` : ""}
                     </span>
                   </span>
-                  <span className="font-mono text-[11px] text-faint">jump →</span>
+                  <span className="font-mono text-[11px] text-faint">åbn →</span>
                 </button>
               );
             })
@@ -221,7 +219,7 @@ export function CommandPalette() {
           <span>
             {results.length} result{results.length === 1 ? "" : "s"}
           </span>
-          <span className="hidden sm:block">↑↓ navigate · ↵ jump to row · esc close</span>
+          <span className="hidden sm:block">↑↓ navigate · ↵ åbn profil · esc close</span>
         </div>
       </div>
     </div>
