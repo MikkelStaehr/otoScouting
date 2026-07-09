@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { RawColumn } from "@/lib/raw-data";
 import { openPlayer } from "./player-modal";
 
@@ -16,6 +16,10 @@ export function RawDatabase({
   const [q, setQ] = useState("");
   const [sortIdx, setSortIdx] = useState(9); // OUT
   const [dir, setDir] = useState<"asc" | "desc">("desc");
+  // Window the render — 15k rows in the DOM was the /database bottleneck (~11s).
+  const [renderLimit, setRenderLimit] = useState(200);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const rowsWithKey = useMemo(() => rows.map((r, i) => ({ r, key: keys[i]! })), [rows, keys]);
 
@@ -34,6 +38,26 @@ export function RawDatabase({
       return dir === "asc" ? cmp : -cmp;
     });
   }, [rowsWithKey, q, sortIdx, dir, cols]);
+
+  // Reset to the top whenever the filtered/sorted set changes.
+  useEffect(() => setRenderLimit(200), [filtered]);
+  const shown = useMemo(() => filtered.slice(0, renderLimit), [filtered, renderLimit]);
+
+  // Grow the window as a sentinel below the rows scrolls into the table container.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    const root = scrollRef.current;
+    if (!el || !root) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting)
+          setRenderLimit((n) => (n < filtered.length ? n + 300 : n));
+      },
+      { root, rootMargin: "600px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [filtered.length]);
 
   const fmt = (v: string | number | null, num: boolean) => {
     if (v == null) return "—";
@@ -85,7 +109,7 @@ export function RawDatabase({
         </button>
       </div>
 
-      <div className="max-h-[76vh] overflow-auto rounded-xl border border-line">
+      <div ref={scrollRef} className="max-h-[76vh] overflow-auto rounded-xl border border-line">
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-ink-2">
             <tr className="border-b border-line">
@@ -105,7 +129,7 @@ export function RawDatabase({
             </tr>
           </thead>
           <tbody>
-            {filtered.map(({ r, key }, ri) => (
+            {shown.map(({ r, key }, ri) => (
               <tr key={ri} className="border-t border-line/50 transition-colors hover:bg-panel/50">
                 {r.map((v, ci) => (
                   <td
@@ -127,6 +151,13 @@ export function RawDatabase({
             ))}
           </tbody>
         </table>
+        {/* Windowing sentinel — grows the render as it scrolls near the bottom. */}
+        <div ref={sentinelRef} aria-hidden className="h-px" />
+        {shown.length < filtered.length && (
+          <div className="border-t border-line/50 py-3 text-center font-mono text-[11px] text-faint">
+            viser {shown.length} af {filtered.length} · scroll for flere
+          </div>
+        )}
       </div>
     </div>
   );

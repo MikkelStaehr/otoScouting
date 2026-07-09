@@ -48,6 +48,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   Indstillinger (detached run + live progress, status-fil)
 - **[2026-07-08](2026-07-08-wal-mode.md)** — "database is locked" fix: WAL-mode så
   ingest-skrivning ikke låser appens reads (delt pipeline/db.py + busy_timeout)
+- **[2026-07-09](2026-07-09-localhost-wins.md)** — Raw DB-windowing (11,5s→1,8s) +
+  index på history(snapshot_id)
 
 ## Tidslinje (kort)
 

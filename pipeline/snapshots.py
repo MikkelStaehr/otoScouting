@@ -49,6 +49,9 @@ def archive(
             hist_cols.append(c)
     if "snapshot_id" not in hist_cols:
         conn.execute(f"ALTER TABLE {hist} ADD COLUMN snapshot_id INTEGER")
+    # The app reads history by snapshot_id (latest snapshot / MAX per league); without
+    # an index that's a full scan of a ~300k-row table. Idempotent, cheap to re-run.
+    conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{hist}_sid ON {hist}(snapshot_id)")
 
     ts = datetime.datetime.now().isoformat(timespec="seconds")
     sid = conn.execute(
