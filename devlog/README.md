@@ -56,6 +56,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   print-one-pager pr. hold (narrativ + rekruttering), som spiller-scout-reports
 - **[2026-07-09](2026-07-09-cross-league-hold.md)** — Table of Justice for hold:
   cross-league hold-rangering (strength-justeret composite score)
+- **[2026-07-09](2026-07-09-hojde-fod.md)** — Højde + foretrukken fod fra Sofascore
+  (player_bio + backfill + visning i kort/rapport)
 
 ## Tidslinje (kort)
 

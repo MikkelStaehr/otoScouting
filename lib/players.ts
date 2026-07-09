@@ -114,6 +114,25 @@ function previousSofascore(league: string): { byId: Map<number, SofaRow>; create
   return { byId: c.all ?? c.byLeague.get(league) ?? new Map(), createdAt: c.createdAt };
 }
 
+/** Static player bio (height + foot) keyed on Sofascore id, loaded once per data
+ *  version. Empty if the backfill (pipeline/fetch_bio.py) hasn't run yet. */
+let bioCache: { version: string; byId: Map<number, { height: number | null; foot: string | null }> } | null = null;
+function loadBio(): Map<number, { height: number | null; foot: string | null }> {
+  const version = dataVersion();
+  if (bioCache && bioCache.version === version) return bioCache.byId;
+  const byId = new Map<number, { height: number | null; foot: string | null }>();
+  try {
+    const rows = getDb()
+      .prepare("SELECT player_id, height, foot FROM player_bio")
+      .all() as { player_id: number; height: number | null; foot: string | null }[];
+    for (const r of rows) byId.set(r.player_id, { height: r.height, foot: r.foot });
+  } catch {
+    /* player_bio may not exist yet — bio just reads null everywhere */
+  }
+  bioCache = { version, byId };
+  return byId;
+}
+
 export interface Board {
   players: EnrichedPlayer[];
   /** How many players actually carry a non-null xG value (not just a name
@@ -274,11 +293,15 @@ function prepareRows(league: string, season: string): {
 
   // Merge Sofascore (xG/xA/goals prevented) onto FBref players by name+team.
   const { map } = matchSofascore(rawRows, sofascoreRows(league, season));
+  const bio = loadBio();
   const sofaTeam = new Map<RawPlayer, string | null>(); // current club (from Sofascore)
   for (const p of rawRows) {
     const s = map.get(`${p.team}::${p.player}`);
     sofaTeam.set(p, s?.team ?? null);
     p.sofascore_id = s?.player_id ?? null;
+    const b = s?.player_id != null ? bio.get(s.player_id) : null;
+    p.height = b?.height ?? null;
+    p.foot = b?.foot ?? null;
     p.xg = s?.xg ?? null;
     p.xa = s?.xa ?? null;
     p.gk_goals_prevented = s?.goals_prevented ?? null;

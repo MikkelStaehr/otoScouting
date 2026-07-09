@@ -20,6 +20,7 @@ function argsFor(mode: string): string[] | null {
   if (mode === "all-spatial") return [];
   if (mode === "sofascore") return ["--sofascore-only"];
   if (mode === "tm") return ["--tm-only"];
+  if (mode === "bio") return ["--bio-only"];
   if (mode.startsWith("league:")) {
     const key = mode.slice("league:".length).trim();
     if (!key || !/^[A-Za-z0-9-]+$/.test(key)) return null;

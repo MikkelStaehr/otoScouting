@@ -22,7 +22,8 @@ interface HeatmapData { w: number; h: number; grid: number[]; nPoints: number; m
 interface PlayerDetail {
   key: string; sid: number | null; player: string; team: string; league: string;
   age: number | null; pos: string | null; posGroup: string;
-  nation: string | null; minutes: number; out: number | null; marketValue: number | null;
+  nation: string | null; height: number | null; foot: string | null;
+  minutes: number; out: number | null; marketValue: number | null;
   flat: { label: string; value: number | null; pct?: boolean }[];
   seasonTeams: string[] | null; role: RoleResult | null; heatmap: HeatmapData | null;
   groups: SimGroup[]; similar: SimilarPlayer[]; benchmarkSimilar: SimilarPlayer[]; valueSpread: ValueSpread | null;
@@ -35,6 +36,9 @@ function fmtValue(v: number | null | undefined): string {
   if (v >= 1_000) return `€${Math.round(v / 1_000)}k`;
   return `€${v}`;
 }
+
+const footDa = (f: string): string =>
+  ({ Right: "Højre fod", Left: "Venstre fod", Both: "Begge fødder" })[f] ?? f;
 
 export function ReportView({ detail: d, insights }: { detail: PlayerDetail; insights: ReportInsights }) {
   const primaryPos = d.pos?.split(",")[0]?.trim();
@@ -64,6 +68,8 @@ export function ReportView({ detail: d, insights }: { detail: PlayerDetail; insi
               {primaryPos && <span className="rounded border border-line-2 px-1 text-faint">{primaryPos}</span>}
               {d.age != null && <span>{d.age} år</span>}
               <Flag nat={d.nation} />
+              {d.height != null && <span className="text-faint">· {d.height} cm</span>}
+              {d.foot && <span className="text-faint">· {footDa(d.foot)}</span>}
               <span className="text-faint">· {d.minutes} min</span>
             </div>
             {d.role?.primary && (

@@ -73,6 +73,8 @@ export interface PlayerDetail {
   pos: string | null;
   posGroup: string;
   nation: string | null;
+  height: number | null; // cm (Sofascore bio)
+  foot: string | null; // Right / Left / Both
   minutes: number;
   out: number | null;
   marketValue: number | null; // Transfermarkt market value in euros
@@ -248,6 +250,8 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     pos: target.pos,
     posGroup: grp,
     nation: target.nation,
+    height: target.height ?? null,
+    foot: target.foot ?? null,
     minutes: target.minutes,
     out: target.outputScore == null ? null : Math.round(target.outputScore),
     marketValue: target.market_value ?? null,

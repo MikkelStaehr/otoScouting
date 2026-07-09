@@ -43,6 +43,7 @@ const STEP_LABEL: Record<string, string> = {
   sofascore: "Sofascore (xG)",
   transfermarkt: "Markedsværdier",
   fbref: "FBref (bio)",
+  bio: "Højde + fod",
   heatmaps: "Heatmaps",
   formations: "Formationer",
 };
@@ -390,6 +391,13 @@ export function SettingsModal({ lastUpdated }: { lastUpdated: string | null }) {
                   title="Kun Transfermarkt markedsværdier"
                 >
                   Kun værdier
+                </button>
+                <button
+                  onClick={() => startIngest("bio")}
+                  className="rounded-lg border border-line-2 px-3 py-2.5 text-xs font-medium text-muted transition-colors hover:text-fg"
+                  title="Højde + fod fra Sofascore (engangs-backfill, ~1 t; derefter hurtigt)"
+                >
+                  Kun højde
                 </button>
               </div>
 

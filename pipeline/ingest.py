@@ -110,6 +110,8 @@ def main() -> int:
     ap.add_argument("--no-coef", action="store_true", help="skip clubelo coefficients")
     ap.add_argument("--tm-only", action="store_true", help="only the Transfermarkt market-value scrape")
     ap.add_argument("--no-tm", action="store_true", help="skip the Transfermarkt scrape")
+    ap.add_argument("--bio-only", action="store_true", help="only the height/foot backfill")
+    ap.add_argument("--no-bio", action="store_true", help="skip the height/foot backfill")
     ap.add_argument("--fbref-timeout", type=int, default=240,
                     help="per-league FBref timeout in seconds; a hang is skipped and retried")
     ap.add_argument("--fbref-passes", type=int, default=3,
@@ -131,6 +133,16 @@ def main() -> int:
     t0 = time.time()
 
     print(f"Ingesting {len(keys)} league(s): {', '.join(keys)}", flush=True)
+
+    # --bio-only: just the height/foot backfill (standalone / the UI "Kun højde").
+    if args.bio_only:
+        progress.start("bio", ["bio"], [])
+        progress.phase("bio", "Højde + fod (Sofascore)")
+        progress.step("bio", "running")
+        ok, _ = run(["fetch_bio.py", *db], "Player bio (height/foot)", timeout=7200)
+        progress.step("bio", "done" if ok else "failed")
+        progress.finish(error=None if ok else "bio")
+        return 0 if ok else 1
 
     only = args.sofascore_only or args.fbref_only or args.spatial_only or args.tm_only
 

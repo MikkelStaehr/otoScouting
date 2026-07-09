@@ -41,6 +41,9 @@ export interface RawPlayer {
   // "value" side of value-per-output (weekly_wage stays null until a wage source).
   market_value: number | null; // euros
   tm_id: number | null; // Transfermarkt player id
+  // Static bio from Sofascore's player endpoint (player_bio), joined by sofascore_id.
+  height: number | null; // cm
+  foot: string | null; // Right / Left / Both
   // Sofascore (Opta-style) fields, attached by the merge — null if unmatched
   sofascore_id: number | null; // Sofascore player id (for heatmap lookup)
   xg: number | null;

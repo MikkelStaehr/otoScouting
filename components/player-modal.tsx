@@ -15,6 +15,10 @@ export function openPlayer(key: string) {
   window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: { key } }));
 }
 
+/** Sofascore's preferred-foot value -> Danish. */
+const footDa = (f: string): string =>
+  ({ Right: "Højre fod", Left: "Venstre fod", Both: "Begge fødder" })[f] ?? f;
+
 /** Transfermarkt market value -> compact string (€350k, €1.2m, €12m). */
 function fmtValue(v: number | null | undefined): string {
   if (v == null) return "—";
@@ -39,7 +43,8 @@ interface ValueSpread {
 interface PlayerDetail {
   key: string; sid: number | null; player: string; team: string; league: string;
   age: number | null; pos: string | null; posGroup: string;
-  nation: string | null; minutes: number; out: number | null;
+  nation: string | null; height: number | null; foot: string | null;
+  minutes: number; out: number | null;
   marketValue: number | null;
   flat: { label: string; value: number | null; pct?: boolean }[];
   seasonTeams: string[] | null;
@@ -156,6 +161,8 @@ export function PlayerModal() {
                 )}
                 {detail.age != null && <span>{detail.age} år</span>}
                 <Flag nat={detail.nation} />
+                {detail.height != null && <span className="text-faint">· {detail.height} cm</span>}
+                {detail.foot && <span className="text-faint">· {footDa(detail.foot)}</span>}
                 <span className="text-faint">· {detail.minutes} min.</span>
                 {detail.marketValue != null && (
                   <span
