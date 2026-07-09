@@ -15,6 +15,7 @@ import { classifyRole } from "./roles.ts";
 import { classifyTeamStyle, type TeamStyle } from "./team-style.ts";
 import { normTeam } from "./merge.ts";
 import { TEAM_METRICS } from "./team-metrics.ts";
+import { leagueLabel } from "./league-meta.ts";
 import type { EnrichedTeam, EnrichedPlayer, MetricKey } from "./types.ts";
 
 export interface TeamMetricReport {
@@ -103,6 +104,45 @@ export interface TeamReport {
   zones: ZoneCover[];
   goalsAgainst: number | null;
   bigChancesAgainst: number | null;
+}
+
+export interface TeamReportInsights {
+  narrative: string;
+}
+
+/** Deterministic Danish scouting summary of a team — mirrors reportInsights for
+ *  players. Identity + style + strengths/weaknesses + softest zone + top signing. */
+export function teamReportInsights(r: TeamReport): TeamReportInsights {
+  const parts: string[] = [];
+  const rank = r.ratingRank != null ? `#${r.ratingRank} af ${r.teamsInLeague}` : `${r.teamsInLeague} hold`;
+  parts.push(
+    `${r.team} i ${leagueLabel(r.league)} — sæson-rating ${r.rating != null ? r.rating.toFixed(2) : "—"} (${rank}).`,
+  );
+
+  const styleBits: string[] = [];
+  if (r.style?.ip.primary) styleBits.push(`med bolden ${r.style.ip.primary.style.toLowerCase()}`);
+  if (r.style?.oop.primary) styleBits.push(`uden bolden ${r.style.oop.primary.style.toLowerCase()}`);
+  if (styleBits.length) parts.push(`Spiller ${styleBits.join(", ")}.`);
+
+  if (r.strengths.length)
+    parts.push(`Stærkest på ${r.strengths.slice(0, 3).map((s) => s.label.toLowerCase()).join(", ")}.`);
+  if (r.weaknesses.length)
+    parts.push(`Svagest på ${r.weaknesses.slice(0, 2).map((s) => s.label.toLowerCase()).join(", ")}.`);
+
+  const zone = r.zones
+    .filter((z) => z.strength != null)
+    .sort((a, b) => (a.strength as number) - (b.strength as number))[0];
+  if (zone) parts.push(`Blødeste defensive zone: ${zone.zone.toLowerCase()} (${zone.player}).`);
+
+  const up = r.roleUpgrades[0];
+  if (up) {
+    let s = `Største rekrutterings-behov: ${up.role} (${up.reason})`;
+    const c = up.candidates[0];
+    if (c) s += ` — fx ${c.player} (${leagueLabel(c.league)})`;
+    parts.push(`${s}.`);
+  }
+
+  return { narrative: parts.join(" ") };
 }
 
 const posGroupOf = (pos: string | null): string => {

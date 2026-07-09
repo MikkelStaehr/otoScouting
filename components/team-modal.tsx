@@ -174,6 +174,17 @@ export function TeamModal() {
                 </div>
               </div>
             )}
+            {detail && (
+              <a
+                href={`/team-report/${encodeURIComponent(`${detail.league}::${detail.team}`)}`}
+                target="_blank"
+                rel="noreferrer"
+                title="Åbn hold-rapport (til print/PDF)"
+                className="rounded-md border border-line-2 px-2 py-1 font-mono text-[11px] text-muted transition-colors hover:border-volt/60 hover:text-volt"
+              >
+                Rapport ↗
+              </a>
+            )}
             <button
               onClick={close}
               className="rounded-md border border-line-2 px-2 py-0.5 font-mono text-[11px] text-muted transition-colors hover:text-fg"

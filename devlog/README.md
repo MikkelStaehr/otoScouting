@@ -52,6 +52,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   index på history(snapshot_id)
 - **[2026-07-09](2026-07-09-bedste-xi.md)** — Bedste XI (fase 1): bedste spiller pr.
   position i en 4-3-3 på tværs af ligaerne, på en bane
+- **[2026-07-09](2026-07-09-hold-rapporter.md)** — Hold-rapporter: eksporterbar
+  print-one-pager pr. hold (narrativ + rekruttering), som spiller-scout-reports
 
 ## Tidslinje (kort)
 
