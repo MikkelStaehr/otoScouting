@@ -492,7 +492,10 @@ export function getTeamReport(league: string, team: string): TeamReport | null {
       // For a pure depth need, show the best profiles in the role (adding a body);
       // for a quality need, only players clearly above who we already have.
       const cands = (pool.get(slot.role) ?? [])
-        .filter((c) => normTeam(c.t) !== nt && (reason === "dybde" || (c.out ?? -1) > (slot.bestOut ?? -1)))
+        // Exclude our own squad by key (the report team's Sofascore name and a
+        // player's FBref team name differ — e.g. "Royale Union Saint-Gilloise" vs
+        // "Union SG" — so normTeam alone misses them; the key matches, both FBref).
+        .filter((c) => !playerLine.has(c.key) && normTeam(c.t) !== nt && (reason === "dybde" || (c.out ?? -1) > (slot.bestOut ?? -1)))
         .filter((c) => side === "C" || c.side === "C" || c.side === side)
         .slice(0, 5)
         .map((c) => ({ key: c.key, player: c.n, team: c.t, league: c.lg, out: c.out, age: c.age }));
