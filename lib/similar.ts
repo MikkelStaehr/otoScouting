@@ -77,7 +77,7 @@ export interface PlayerDetail {
   height: number | null; // cm (Sofascore bio)
   foot: string | null; // Right / Left / Both
   // Positional threat — xT-weighted heatmap activity (a "deeper role" spatial signal).
-  threat: { pt: number; ptPct: number | null; attThird: number } | null;
+  threat: { pt: number; ptPct: number | null; ownThird: number; attThird: number } | null;
   minutes: number;
   out: number | null;
   marketValue: number | null; // Transfermarkt market value in euros
@@ -241,7 +241,12 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     const ptPct = peers.length
       ? Math.round((peers.filter((v) => v < tp.pt).length / peers.length) * 100)
       : null;
-    threat = { pt: Math.round(tp.pt * 1000) / 1000, ptPct, attThird: Math.round(tp.attThird * 100) };
+    threat = {
+      pt: Math.round(tp.pt * 1000) / 1000,
+      ptPct,
+      ownThird: Math.round(tp.ownThird * 100),
+      attThird: Math.round(tp.attThird * 100),
+    };
   }
 
   const config = loadModelConfig();

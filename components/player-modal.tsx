@@ -56,7 +56,7 @@ interface PlayerDetail {
   key: string; sid: number | null; player: string; team: string; league: string;
   age: number | null; pos: string | null; posGroup: string;
   nation: string | null; height: number | null; foot: string | null;
-  threat: { pt: number; ptPct: number | null; attThird: number } | null;
+  threat: { pt: number; ptPct: number | null; ownThird: number; attThird: number } | null;
   minutes: number; out: number | null;
   marketValue: number | null;
   flat: { label: string; value: number | null; pct?: boolean }[];
@@ -212,23 +212,6 @@ export function PlayerModal() {
                 )}
               </div>
             )}
-            {detail?.threat && (
-              <div
-                className="mt-1.5 font-mono text-[10px] leading-relaxed text-faint"
-                title="Trussel-territorie: aktivitet vægtet med xT — hvor farlige zoner spilleren opererer i, vs. sin position"
-              >
-                trussel-territorie:{" "}
-                <span className="text-muted">{ptDesc(detail.threat.ptPct)}</span>
-                {detail.threat.ptPct != null && (
-                  <>
-                    {" "}
-                    · <span className="text-volt">{detail.threat.ptPct}. pct</span> af{" "}
-                    {grpDa(detail.posGroup)}
-                  </>
-                )}
-                {" "}· {detail.threat.attThird}% i angrebstredjedel
-              </div>
-            )}
           </div>
           <div className="flex items-center gap-3">
             {detail && (
@@ -325,6 +308,55 @@ export function PlayerModal() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {detail.threat && (
+                <div className="mb-5 rounded-xl border border-line bg-panel/30 p-4">
+                  <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-volt">
+                    Beregnede felter
+                  </div>
+
+                  {/* Positional threat (heatmap × xT) */}
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                    <span className="text-sm text-fg">
+                      Trussel-territorie <span className="text-faint">· xT</span>
+                    </span>
+                    <span className="font-mono text-xs">
+                      <span className="text-muted">{ptDesc(detail.threat.ptPct)}</span>
+                      {detail.threat.ptPct != null && (
+                        <span className="text-volt">
+                          {" "}
+                          · {detail.threat.ptPct}. pct af {grpDa(detail.posGroup)}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <p className="mt-1 font-mono text-[10px] leading-relaxed text-faint">
+                    Hvor farlige zoner spilleren opererer i, aktivitet vægtet med xT — et
+                    positionerings-signal (territorie), ikke output.
+                  </p>
+
+                  {/* Territory split — own / mid / attacking third of activity */}
+                  <div className="mt-3.5">
+                    <div className="mb-1 flex justify-between font-mono text-[10px] text-faint">
+                      <span>Territorie</span>
+                      <span>
+                        eget {detail.threat.ownThird}% · midt{" "}
+                        {Math.max(0, 100 - detail.threat.ownThird - detail.threat.attThird)}% · angreb{" "}
+                        {detail.threat.attThird}%
+                      </span>
+                    </div>
+                    <div className="flex h-2.5 overflow-hidden rounded-full border border-line-2">
+                      <div className="bg-line-2" style={{ width: `${detail.threat.ownThird}%` }} title="eget tredjedel" />
+                      <div className="bg-faint/70" style={{ width: `${Math.max(0, 100 - detail.threat.ownThird - detail.threat.attThird)}%` }} title="midtertredjedel" />
+                      <div className="bg-volt" style={{ width: `${detail.threat.attThird}%` }} title="angrebstredjedel" />
+                    </div>
+                    <div className="mt-1 flex justify-between font-mono text-[9px] text-faint">
+                      <span>eget mål</span>
+                      <span>modstanderens mål →</span>
+                    </div>
+                  </div>
                 </div>
               )}
 
