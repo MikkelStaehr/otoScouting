@@ -12,17 +12,36 @@ function euro(v: number | null | undefined): string {
   return `€${v}`;
 }
 
+/** Plain-language "how good" for a percentile — what a casual viewer actually gets. */
+export function topPhrase(pct: number): string {
+  if (pct >= 99.9) return "flest i 30 ligaer";
+  return `top ${Math.max(1, Math.round(100 - pct))}% i 30 ligaer`;
+}
+
+/** Per-90 count (2 dp under 1, else 1 dp) or a rate as a %. */
+export function fmtStat(label: string, value: number): string {
+  if (/%|pct|præcis|besidd/i.test(label)) return `${Math.round(value)}%`;
+  return `${value < 1 ? value.toFixed(2) : value.toFixed(1)}/90`;
+}
+
 export function shareCaption(d: PlayerDetail): string {
   const stats = d.groups
     .flatMap((g) => g.stats)
-    .filter((s) => s.pct != null) as { label: string; pct: number }[];
-  const top = [...stats].sort((a, b) => b.pct - a.pct).slice(0, 2);
+    .filter((s) => s.value != null && s.pct != null) as { label: string; value: number; pct: number }[];
+  const top = [...stats].sort((a, b) => b.pct - a.pct)[0];
   const role = d.role?.primary?.role ?? d.pos ?? "spiller";
+  // Relatable season totals (counting stats only) — "9 kampe · 2 mål · 7 assists".
+  const totals = d.flat
+    .filter((f) => f.value != null && !f.pct)
+    .slice(0, 3)
+    .map((f) => `${f.value} ${f.label.toLowerCase()}`)
+    .join(" · ");
 
   const lines: string[] = [];
   lines.push(`🔍 ${d.player}${d.age != null ? ` (${d.age})` : ""} · ${d.team}, ${leagueLabel(d.league)}`);
-  if (top.length)
-    lines.push(`${top.map((s) => `${s.label.toLowerCase()} ${s.pct}. pct`).join(" · ")} på tværs af 30 ligaer.`);
+  if (totals) lines.push(`${totals}.`);
+  if (top)
+    lines.push(`${top.label} ${fmtStat(top.label, top.value)} — ${topPhrase(top.pct)}.`);
   if (d.marketValue != null && d.valueSpread)
     lines.push(`Vurderet ${euro(d.marketValue)} — men leverer som ${euro(d.valueSpread.median)}-profiler.`);
   else if (d.marketValue != null) lines.push(`Vurderet ${euro(d.marketValue)}.`);

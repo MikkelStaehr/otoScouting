@@ -24,16 +24,26 @@ function euro(v: number | null | undefined): string {
 const footDa = (f: string | null) =>
   f ? ({ Right: "Højre", Left: "Venstre", Both: "Begge" })[f] ?? f : null;
 
+const topPhrase = (pct: number) =>
+  pct >= 99.9 ? "flest i 30 ligaer" : `top ${Math.max(1, Math.round(100 - pct))}%`;
+const fmtStat = (label: string, v: number) =>
+  /%|pct|præcis|besidd/i.test(label) ? `${Math.round(v)}%` : `${v < 1 ? v.toFixed(2) : v.toFixed(1)}/90`;
+
 export function ShareCard({ detail: d, caption }: { detail: PlayerDetail; caption: string }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const strengths = (
-    d.groups.flatMap((g) => g.stats).filter((s) => s.pct != null) as { label: string; pct: number }[]
+    d.groups.flatMap((g) => g.stats).filter((s) => s.value != null && s.pct != null) as {
+      label: string;
+      value: number;
+      pct: number;
+    }[]
   )
     .sort((a, b) => b.pct - a.pct)
     .slice(0, 4);
+  const totals = d.flat.filter((f) => f.value != null && !f.pct).slice(0, 3);
   const role = d.role?.primary?.role;
   const big5 = d.benchmarkSimilar[0];
   const logo = teamLogoUrl(d.team);
@@ -115,16 +125,33 @@ export function ShareCard({ detail: d, caption }: { detail: PlayerDetail; captio
           </div>
         </div>
 
-        {/* strengths */}
-        <div style={{ marginTop: 24 }}>
-          {label("Stærkest")}
+        {/* season totals — the relatable raw numbers */}
+        {totals.length > 0 && (
+          <div style={{ marginTop: 22, display: "flex", gap: 10 }}>
+            {totals.map((t) => (
+              <div key={t.label} style={{ flex: 1, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 12, padding: "10px 8px", textAlign: "center" }}>
+                <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1 }}>{t.value}</div>
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{t.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* strengths — raw per-90 value + plain-language rank (not a bare "100") */}
+        <div style={{ marginTop: 22 }}>
+          {label("Stærkest · pr. 90 min på tværs af 30 ligaer")}
           {strengths.map((s) => (
-            <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <span style={{ width: 150, fontSize: 13, color: C.muted, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{s.label}</span>
-              <div style={{ flex: 1, height: 8, background: C.line, borderRadius: 999, overflow: "hidden" }}>
+            <div key={s.label} style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, gap: 10 }}>
+                <span style={{ fontSize: 14, color: C.fg, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{s.label}</span>
+                <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>
+                  <span style={{ fontWeight: 700 }}>{fmtStat(s.label, s.value)}</span>
+                  <span style={{ color: C.muted }}> · {topPhrase(s.pct)}</span>
+                </span>
+              </div>
+              <div style={{ height: 6, background: C.line, borderRadius: 999, overflow: "hidden" }}>
                 <div style={{ width: `${s.pct}%`, height: "100%", background: C.volt, borderRadius: 999 }} />
               </div>
-              <span style={{ width: 26, textAlign: "right", fontFamily: "monospace", fontSize: 12, color: C.fg }}>{Math.round(s.pct)}</span>
             </div>
           ))}
         </div>
