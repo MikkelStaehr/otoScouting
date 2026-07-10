@@ -64,6 +64,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   hentet på første åbning, ude af per-side-payload)
 - **[2026-07-10](2026-07-10-positional-threat.md)** — Positional threat: heatmap×xT
   rumligt værdi-lag der afslører dybere roller (fremskudt/dyb pr. position)
+- **[2026-07-10](2026-07-10-spillerprofil.md)** — Spillerprofil: composite stil-DNA
+  (6 dimensioner) — afløser PT/territorie på profilen
 
 ## Tidslinje (kort)
 
