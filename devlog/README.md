@@ -62,6 +62,8 @@ og beskriver beslutninger, ikke kun kode — så man et halvt år senere kan for
   (html-to-image) + deterministisk caption, isoleret rute /del
 - **[2026-07-09](2026-07-09-soegning.md)** — ⌘K søger nu alle 30 ligaer (index
   hentet på første åbning, ude af per-side-payload)
+- **[2026-07-10](2026-07-10-positional-threat.md)** — Positional threat: heatmap×xT
+  rumligt værdi-lag der afslører dybere roller (fremskudt/dyb pr. position)
 
 ## Tidslinje (kort)
 

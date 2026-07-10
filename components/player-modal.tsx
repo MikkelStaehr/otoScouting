@@ -19,6 +19,18 @@ export function openPlayer(key: string) {
 const footDa = (f: string): string =>
   ({ Right: "Højre fod", Left: "Venstre fod", Both: "Begge fødder" })[f] ?? f;
 
+// Positional-threat descriptor: how high/deep a player operates vs his position peers.
+const ptDesc = (ptPct: number | null): string => {
+  if (ptPct == null) return "—";
+  if (ptPct >= 85) return "meget fremskudt";
+  if (ptPct >= 60) return "fremskudt";
+  if (ptPct <= 15) return "meget dyb";
+  if (ptPct <= 40) return "dyb";
+  return "balanceret";
+};
+const grpDa = (g: string): string =>
+  ({ GK: "målmænd", DF: "forsvarere", MF: "midtbaner", FW: "angribere" })[g] ?? g + "-spillere";
+
 /** Transfermarkt market value -> compact string (€350k, €1.2m, €12m). */
 function fmtValue(v: number | null | undefined): string {
   if (v == null) return "—";
@@ -44,6 +56,7 @@ interface PlayerDetail {
   key: string; sid: number | null; player: string; team: string; league: string;
   age: number | null; pos: string | null; posGroup: string;
   nation: string | null; height: number | null; foot: string | null;
+  threat: { pt: number; ptPct: number | null; attThird: number } | null;
   minutes: number; out: number | null;
   marketValue: number | null;
   flat: { label: string; value: number | null; pct?: boolean }[];
@@ -197,6 +210,23 @@ export function PlayerModal() {
                     hvorfor: {detail.role.primary.why.join(" · ")}
                   </span>
                 )}
+              </div>
+            )}
+            {detail?.threat && (
+              <div
+                className="mt-1.5 font-mono text-[10px] leading-relaxed text-faint"
+                title="Trussel-territorie: aktivitet vægtet med xT — hvor farlige zoner spilleren opererer i, vs. sin position"
+              >
+                trussel-territorie:{" "}
+                <span className="text-muted">{ptDesc(detail.threat.ptPct)}</span>
+                {detail.threat.ptPct != null && (
+                  <>
+                    {" "}
+                    · <span className="text-volt">{detail.threat.ptPct}. pct</span> af{" "}
+                    {grpDa(detail.posGroup)}
+                  </>
+                )}
+                {" "}· {detail.threat.attThird}% i angrebstredjedel
               </div>
             )}
           </div>

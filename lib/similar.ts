@@ -5,6 +5,7 @@
 // outfielders, the same primary position — a CB is matched to CBs, not wingers.
 
 import { getCrossLeaguePlayers, getFullPoolPlayers } from "./players.ts";
+import { getAllThreat } from "./threat.ts";
 import { loadBenchmarkLeagues } from "./league-config.ts";
 import { loadModelConfig } from "./model.ts";
 import { getHeatmap, getAllCentroids, type Heatmap } from "./heatmap.ts";
@@ -75,6 +76,8 @@ export interface PlayerDetail {
   nation: string | null;
   height: number | null; // cm (Sofascore bio)
   foot: string | null; // Right / Left / Both
+  // Positional threat — xT-weighted heatmap activity (a "deeper role" spatial signal).
+  threat: { pt: number; ptPct: number | null; attThird: number } | null;
   minutes: number;
   out: number | null;
   marketValue: number | null; // Transfermarkt market value in euros
@@ -224,6 +227,23 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
   // Value band from statistical + age peers across the full pool (dev + big-5).
   const valueSpread = fullTarget ? computeValueSpread(fullTarget, full, isGk, grp) : null;
 
+  // Positional threat: how dangerous the zones this player operates in are, and how
+  // that ranks vs same-position peers — the spatial "deeper role" dimension.
+  const threatMap = getAllThreat();
+  const tp = target.sofascore_id != null ? threatMap.get(target.sofascore_id) ?? null : null;
+  let threat: PlayerDetail["threat"] = null;
+  if (tp) {
+    const peers = full
+      .filter((p) => (p.gk_saves != null) === isGk && posGroup(p.pos) === grp && p.sofascore_id != null)
+      .map((p) => threatMap.get(p.sofascore_id!)?.pt)
+      .filter((v): v is number => v != null)
+      .sort((a, b) => a - b);
+    const ptPct = peers.length
+      ? Math.round((peers.filter((v) => v < tp.pt).length / peers.length) * 100)
+      : null;
+    threat = { pt: Math.round(tp.pt * 1000) / 1000, ptPct, attThird: Math.round(tp.attThird * 100) };
+  }
+
   const config = loadModelConfig();
   const displayGroups: GroupKey[] = isGk
     ? ["goalkeeping", "buildup"] // buildup shows sweeper / ball-playing profile
@@ -252,6 +272,7 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     nation: target.nation,
     height: target.height ?? null,
     foot: target.foot ?? null,
+    threat,
     minutes: target.minutes,
     out: target.outputScore == null ? null : Math.round(target.outputScore),
     marketValue: target.market_value ?? null,
