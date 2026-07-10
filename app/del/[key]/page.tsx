@@ -1,6 +1,6 @@
 import { getPlayerDetail } from "@/lib/similar";
 import { shareCaption } from "@/lib/share";
-import { ShareCard } from "@/components/share-card";
+import { ShareSlides } from "@/components/share-card";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export default async function SharePage({ params }: { params: Promise<{ key: str
           ← rapport
         </a>
       </div>
-      <ShareCard detail={detail} caption={shareCaption(detail)} />
+      <ShareSlides detail={detail} caption={shareCaption(detail)} />
     </div>
   );
 }
