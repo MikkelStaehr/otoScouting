@@ -205,6 +205,7 @@ export function PlayerModal() {
               <WatchlistButton
                 target={{ sid: detail.sid, key: detail.key, n: detail.player, t: detail.team, lg: detail.league }}
                 size="md"
+                label
               />
             )}
             {detail && (

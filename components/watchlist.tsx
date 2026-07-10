@@ -95,8 +95,18 @@ export interface WatchTarget {
   lg: string;
 }
 
-/** ⭐ toggle — opens a popover to add/remove the player across lists + create new. */
-export function WatchlistButton({ target, size = "sm" }: { target: WatchTarget; size?: "sm" | "md" }) {
+/** ⭐ toggle — opens a popover to add/remove the player across lists + create new.
+ *  `label` renders a bordered "☆ Watchlist" button (for the modal header) instead of
+ *  a bare star (for dense table/list rows). */
+export function WatchlistButton({
+  target,
+  size = "sm",
+  label = false,
+}: {
+  target: WatchTarget;
+  size?: "sm" | "md";
+  label?: boolean;
+}) {
   const all = useWatchlists();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -163,21 +173,36 @@ export function WatchlistButton({ target, size = "sm" }: { target: WatchTarget; 
     setNewName("");
   };
 
+  const onTrigger = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpen((o) => !o);
+  };
+
   return (
     <span className="inline-flex">
-      <button
-        ref={btnRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((o) => !o);
-        }}
-        title={saved ? "På en watchlist" : "Tilføj til watchlist"}
-        className={`leading-none transition-colors ${star} ${
-          saved ? "text-volt" : "text-faint hover:text-volt"
-        }`}
-      >
-        {saved ? "★" : "☆"}
-      </button>
+      {label ? (
+        <button
+          ref={btnRef}
+          onClick={onTrigger}
+          title={saved ? "På en watchlist" : "Tilføj til watchlist"}
+          className={`flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-[11px] transition-colors ${
+            saved ? "border-volt/60 text-volt" : "border-line-2 text-muted hover:border-volt/60 hover:text-volt"
+          }`}
+        >
+          <span>{saved ? "★" : "☆"}</span> Watchlist
+        </button>
+      ) : (
+        <button
+          ref={btnRef}
+          onClick={onTrigger}
+          title={saved ? "På en watchlist" : "Tilføj til watchlist"}
+          className={`leading-none transition-colors ${star} ${
+            saved ? "text-volt" : "text-faint hover:text-volt"
+          }`}
+        >
+          {saved ? "★" : "☆"}
+        </button>
+      )}
       {open && pos && createPortal(
         <div
           ref={popRef}
