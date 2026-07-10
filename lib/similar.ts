@@ -6,6 +6,7 @@
 
 import { getCrossLeaguePlayers, getFullPoolPlayers } from "./players.ts";
 import { getAllThreat } from "./threat.ts";
+import { playerProfile, type StyleDim } from "./profile.ts";
 import { loadBenchmarkLeagues } from "./league-config.ts";
 import { loadModelConfig } from "./model.ts";
 import { getHeatmap, getAllCentroids, type Heatmap } from "./heatmap.ts";
@@ -78,6 +79,8 @@ export interface PlayerDetail {
   foot: string | null; // Right / Left / Both
   // Positional threat — xT-weighted heatmap activity (a "deeper role" spatial signal).
   threat: { pt: number; ptPct: number | null; ownThird: number; attThird: number } | null;
+  // Composite style dimensions (finishing / creation / pressing / defending ...).
+  profile: StyleDim[];
   minutes: number;
   out: number | null;
   marketValue: number | null; // Transfermarkt market value in euros
@@ -278,6 +281,7 @@ export function getPlayerDetail(key: string): PlayerDetail | null {
     height: target.height ?? null,
     foot: target.foot ?? null,
     threat,
+    profile: playerProfile(target.percentile),
     minutes: target.minutes,
     out: target.outputScore == null ? null : Math.round(target.outputScore),
     marketValue: target.market_value ?? null,

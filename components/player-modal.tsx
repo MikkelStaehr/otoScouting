@@ -19,17 +19,6 @@ export function openPlayer(key: string) {
 const footDa = (f: string): string =>
   ({ Right: "Højre fod", Left: "Venstre fod", Both: "Begge fødder" })[f] ?? f;
 
-// Positional-threat descriptor: how high/deep a player operates vs his position peers.
-const ptDesc = (ptPct: number | null): string => {
-  if (ptPct == null) return "—";
-  if (ptPct >= 85) return "meget fremskudt";
-  if (ptPct >= 60) return "fremskudt";
-  if (ptPct <= 15) return "meget dyb";
-  if (ptPct <= 40) return "dyb";
-  return "balanceret";
-};
-const grpDa = (g: string): string =>
-  ({ GK: "målmænd", DF: "forsvarere", MF: "midtbaner", FW: "angribere" })[g] ?? g + "-spillere";
 
 /** Transfermarkt market value -> compact string (€350k, €1.2m, €12m). */
 function fmtValue(v: number | null | undefined): string {
@@ -57,6 +46,7 @@ interface PlayerDetail {
   age: number | null; pos: string | null; posGroup: string;
   nation: string | null; height: number | null; foot: string | null;
   threat: { pt: number; ptPct: number | null; ownThird: number; attThird: number } | null;
+  profile: { key: string; label: string; score: number }[];
   minutes: number; out: number | null;
   marketValue: number | null;
   flat: { label: string; value: number | null; pct?: boolean }[];
@@ -311,51 +301,34 @@ export function PlayerModal() {
                 </div>
               )}
 
-              {detail.threat && (
+              {detail.profile.length > 0 && (
                 <div className="mb-5 rounded-xl border border-line bg-panel/30 p-4">
-                  <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-volt">
-                    Beregnede felter
-                  </div>
-
-                  {/* Positional threat (heatmap × xT) */}
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                    <span className="text-sm text-fg">
-                      Trussel-territorie <span className="text-faint">· xT</span>
+                  <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-volt">
+                      Spillerprofil
                     </span>
-                    <span className="font-mono text-xs">
-                      <span className="text-muted">{ptDesc(detail.threat.ptPct)}</span>
-                      {detail.threat.ptPct != null && (
-                        <span className="text-volt">
-                          {" "}
-                          · {detail.threat.ptPct}. pct af {grpDa(detail.posGroup)}
+                    <span
+                      className="cursor-help font-mono text-[9px] text-faint"
+                      title="Stil-dimensioner: hvert felt er et vægtet blend af relevante stats (0-100, ligastyrke-justeret). Fortæller hvad slags spiller, ikke bare hvad han producerer."
+                    >
+                      stil-dimensioner · 0-100
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+                    {detail.profile.map((s) => (
+                      <div key={s.key} className="flex items-center gap-2">
+                        <span className="w-32 shrink-0 truncate text-[12px] text-muted" title={s.label}>
+                          {s.label}
                         </span>
-                      )}
-                    </span>
-                  </div>
-                  <p className="mt-1 font-mono text-[10px] leading-relaxed text-faint">
-                    Hvor farlige zoner spilleren opererer i, aktivitet vægtet med xT — et
-                    positionerings-signal (territorie), ikke output.
-                  </p>
-
-                  {/* Territory split — own / mid / attacking third of activity */}
-                  <div className="mt-3.5">
-                    <div className="mb-1 flex justify-between font-mono text-[10px] text-faint">
-                      <span>Territorie</span>
-                      <span>
-                        eget {detail.threat.ownThird}% · midt{" "}
-                        {Math.max(0, 100 - detail.threat.ownThird - detail.threat.attThird)}% · angreb{" "}
-                        {detail.threat.attThird}%
-                      </span>
-                    </div>
-                    <div className="flex h-2.5 overflow-hidden rounded-full border border-line-2">
-                      <div className="bg-line-2" style={{ width: `${detail.threat.ownThird}%` }} title="eget tredjedel" />
-                      <div className="bg-faint/70" style={{ width: `${Math.max(0, 100 - detail.threat.ownThird - detail.threat.attThird)}%` }} title="midtertredjedel" />
-                      <div className="bg-volt" style={{ width: `${detail.threat.attThird}%` }} title="angrebstredjedel" />
-                    </div>
-                    <div className="mt-1 flex justify-between font-mono text-[9px] text-faint">
-                      <span>eget mål</span>
-                      <span>modstanderens mål →</span>
-                    </div>
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink-2">
+                          <div
+                            className={`h-full rounded-full ${s.score >= 60 ? "bg-volt" : "bg-faint/60"}`}
+                            style={{ width: `${s.score}%` }}
+                          />
+                        </div>
+                        <span className="w-7 shrink-0 text-right font-mono text-[11px] text-fg">{s.score}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
